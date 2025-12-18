@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { firestoreAPI } from '@/utils/firestore';
 import { useAppStore } from '@/store/appStore';
-import { Target, Plus, Edit2, Trash2, X, Shield, Zap, AlertTriangle } from 'lucide-react';
+import { Target, Plus, Edit2, Trash2, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { CreateLevelForm, HintType } from '@/types';
 
 export const LevelManager: React.FC = () => {
-  const { levels } = useAppStore();
+  const { levels, groups } = useAppStore();
   const [showForm, setShowForm] = useState(false);
   const [editingLevel, setEditingLevel] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -48,8 +48,16 @@ export const LevelManager: React.FC = () => {
         toast.success('[ MISSION UPDATED ]');
       } else {
         const nextNumber = levels.length + 1;
+        // Get first group as default if no group selected
+        const defaultGroupId = groups.length > 0 ? groups[0].id : '';
+        if (!defaultGroupId) {
+          toast.error('[ SELECT A GROUP FIRST ]');
+          setLoading(false);
+          return;
+        }
         await firestoreAPI.createLevel({
           ...formData,
+          groupId: defaultGroupId,
           number: nextNumber,
           isActive: true,
           createdAt: Date.now(),

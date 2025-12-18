@@ -53,6 +53,7 @@ export const Dashboard = () => {
 
     const fetchStatus = async () => {
       try {
+        if (!user.teamId) return;
         const response = await getTeamStatus(user.teamId);
         if (response.success) {
           setTeamStatus(response.team);
@@ -71,6 +72,7 @@ export const Dashboard = () => {
     // Subscribe to real-time team updates
     const unsubscribe = onSnapshot(doc(db, 'teams', user.teamId), async () => {
       try {
+        if (!user.teamId) return;
         const response = await getTeamStatus(user.teamId);
         if (response.success) {
           setTeamStatus(response.team);
@@ -155,7 +157,7 @@ export const Dashboard = () => {
   const eventStatus = eventConfig?.status || eventConfig?.eventStatus;
   const isEventPaused = eventStatus === 'paused';
   const isEventStopped = eventStatus === 'stopped' || eventConfig?.isActive === false;
-  const isEventRunning = eventStatus === 'running' || eventStatus === 'active' || (eventConfig?.isActive === true && !isEventPaused && !isEventStopped);
+  // const isEventRunning = eventStatus === 'running' || eventStatus === 'active' || (eventConfig?.isActive === true && !isEventPaused && !isEventStopped); // Unused
 
   return (
     <Layout>
@@ -196,7 +198,7 @@ export const Dashboard = () => {
           status={{
             label: "EVENT",
             value: isEventStopped ? 'STOPPED' : isEventPaused ? 'PAUSED' : statusBadge.label,
-            color: isEventStopped ? 'red' : isEventPaused ? 'yellow' : statusBadge.color,
+            color: (isEventStopped ? 'red' : isEventPaused ? 'yellow' : statusBadge.color) as 'red' | 'blue' | 'green' | 'yellow',
           }}
         />
 

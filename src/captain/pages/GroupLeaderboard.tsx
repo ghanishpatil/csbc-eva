@@ -70,7 +70,7 @@ export const GroupLeaderboard: React.FC = () => {
     );
   }
 
-  const { teams, groupName, stats } = groupData;
+  const { teams, groupName } = groupData;
   const sortedTeams = [...teams].sort((a, b) => (b.score || 0) - (a.score || 0));
   const totalScore = sortedTeams.reduce((acc, t) => acc + (t.score || 0), 0);
   const totalLevelsCompleted = sortedTeams.reduce((acc, t) => acc + (t.levelsCompleted || 0), 0);

@@ -10,7 +10,7 @@ import { useNavigate } from 'react-router-dom';
 
 export const Levels: React.FC = () => {
   const { user } = useAuth();
-  const teamId = user?.teamId || user?.id || user?.uid || user?.email;
+  const teamId = user?.teamId || user?.id || user?.email;
   const navigate = useNavigate();
   const { levels, loadData } = useCaptainStore();
 

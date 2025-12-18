@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Shield, Home, Users, Activity, Trophy, FileText, MessageSquare } from 'lucide-react';
+import { Shield, Home, Users, Trophy, FileText, MessageSquare } from 'lucide-react';
 
 const tabs = [
   { to: '/captain/dashboard', label: 'Group Overview', icon: Home, color: 'text-cyber-neon-blue', activeBg: 'bg-cyber-neon-blue/10' },

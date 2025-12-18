@@ -9,7 +9,7 @@ import { ListChecks } from 'lucide-react';
 
 export const ActivityLog: React.FC = () => {
   const { user } = useAuth();
-  const teamId = user?.teamId || user?.id || user?.uid || user?.email;
+  const teamId = user?.teamId || user?.id || user?.email;
   const { loadData, activity } = useCaptainStore();
 
   useEffect(() => {

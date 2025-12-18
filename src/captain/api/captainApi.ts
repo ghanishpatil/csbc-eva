@@ -3,7 +3,7 @@ import { auth } from '@/config/firebase';
 import { API_BASE_URL } from '@/config/api';
 
 // Create axios instance with auth interceptor
-const captainApi = axios.create({
+export const captainApi = axios.create({
   baseURL: API_BASE_URL,
   timeout: 30000,
 });
@@ -41,9 +41,11 @@ export interface GroupOverview {
 export interface Team {
   id: string;
   name: string;
+  teamNumber?: number;
   groupId: string;
   score: number;
   levelsCompleted: number;
+  status?: 'waiting' | 'at_location' | 'solving' | 'moving';
   members?: string[];
 }
 

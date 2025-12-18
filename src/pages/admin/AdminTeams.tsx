@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { collection, onSnapshot, getDocs } from 'firebase/firestore';
+import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { adjustScore, createTeam, updateTeam, deleteTeam } from '../../api/adminApi';
 import { Users, Edit2, Trash2, Plus, DollarSign, AlertTriangle } from 'lucide-react';

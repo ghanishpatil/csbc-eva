@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { Layout } from '@/components/Layout';
 import CaptainNavbar from '@/captain/components/CaptainNavbar';
 import { PageHeader } from '@/components/ui/PageHeader';
@@ -6,17 +6,17 @@ import { CyberCard } from '@/components/ui/CyberCard';
 import { StatCard } from '@/components/ui/StatCard';
 import { SectionTitle } from '@/components/ui/SectionTitle';
 import { GroupOverview, captainApiClient } from '@/captain/api/captainApi';
-import { Target, Trophy, Activity, Users, TrendingUp, AlertCircle, RefreshCw, LogOut, Zap } from 'lucide-react';
+import { Target, Trophy, Activity, Users, TrendingUp, AlertCircle, RefreshCw, LogOut } from 'lucide-react';
 import { Heatmap } from '@/captain/components/Heatmap';
 import { SuspiciousActivityDetector } from '@/captain/components/SuspiciousActivityDetector';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
-import { collection, onSnapshot, query, where, orderBy, doc, getDoc, getDocs, updateDoc } from 'firebase/firestore';
+import { collection, onSnapshot, query, where, orderBy, doc } from 'firebase/firestore';
 import { db } from '@/config/firebase';
 import toast from 'react-hot-toast';
 
 export const Dashboard: React.FC = () => {
-  const { signOut, user } = useAuth();
+  const { signOut } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [groupData, setGroupData] = useState<GroupOverview | null>(null);
@@ -204,7 +204,7 @@ export const Dashboard: React.FC = () => {
     );
   }
 
-  const { groupName, teams, levels, stats } = groupData;
+  const { groupName, teams, stats } = groupData;
 
   return (
     <Layout>

@@ -101,6 +101,7 @@ export interface Submission {
   id: string;
   teamId: string;
   levelId: string;
+  levelTitle?: string; // Level title for display
   flag?: string;
   timeTaken: number; // in minutes
   hintsUsed: number;
@@ -108,6 +109,8 @@ export interface Submission {
   pointDeduction: number;
   timePenalty: number;
   finalScore: number;
+  scoreAwarded?: number; // Final score awarded (alias for finalScore)
+  status?: 'correct' | 'incorrect'; // Submission status
   submittedAt: number;
   submittedBy: string; // Captain ID
 }

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from '../../config/firebase';
-import { BarChart3, TrendingUp, Clock, Users, Target, Award, Activity, AlertCircle } from 'lucide-react';
+import { BarChart3, TrendingUp, Clock, Target, Award, Activity } from 'lucide-react';
 
 interface AnalyticsData {
   submissions: any[];
@@ -18,7 +18,7 @@ const AdminAnalytics = () => {
     users: [],
   });
   const [loading, setLoading] = useState(true);
-  const [timeRange, setTimeRange] = useState('24h');
+  // const [timeRange, setTimeRange] = useState('24h'); // Unused
 
   useEffect(() => {
     const unsubSubmissions = onSnapshot(collection(db, 'submissions'), (snapshot) => {

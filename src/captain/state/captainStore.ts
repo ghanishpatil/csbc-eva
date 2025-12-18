@@ -15,7 +15,7 @@ interface CaptainState {
   loadData: (teamId: string) => Promise<void>;
 }
 
-export const useCaptainStore = create<CaptainState>((set, get) => ({
+export const useCaptainStore = create<CaptainState>((set) => ({
   teamId: undefined,
   teamName: undefined,
   levels: [],
@@ -32,15 +32,15 @@ export const useCaptainStore = create<CaptainState>((set, get) => ({
     try {
       // Firestore reads for levels, submissions, leaderboard
       const [levels, submissions, leaderboard] = await Promise.all([
-        firestoreAPI.getLevels(),
+        firestoreAPI.getAllLevels(),
         firestoreAPI.getTeamSubmissions(teamId),
         firestoreAPI.getLeaderboard(),
       ]);
 
       // Derive activity from submissions (team-only)
       const activity = submissions
-        .filter((s) => s.teamId === teamId)
-        .sort((a, b) => (b.submittedAt || 0) - (a.submittedAt || 0));
+        .filter((s: Submission) => s.teamId === teamId)
+        .sort((a: Submission, b: Submission) => (b.submittedAt || 0) - (a.submittedAt || 0));
 
       set({
         levels: levels || [],

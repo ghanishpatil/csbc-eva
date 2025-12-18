@@ -1,4 +1,4 @@
-import { BadgeCheck, Clock, Lock, Trophy, Zap } from 'lucide-react';
+import { Clock, Trophy } from 'lucide-react';
 import { CyberCard } from '@/components/ui/CyberCard';
 import { NeonButton } from '@/components/ui/NeonButton';
 import { Level } from '@/types';
@@ -10,39 +10,20 @@ interface MissionCardProps {
   onHint?: (levelId: string) => void;
 }
 
-const difficultyColor = {
+const difficultyColor: Record<string, string> = {
   easy: 'bg-cyber-neon-green/15 text-cyber-neon-green border-cyber-neon-green/40',
   medium: 'bg-cyber-neon-yellow/15 text-cyber-neon-yellow border-cyber-neon-yellow/40',
   hard: 'bg-cyber-neon-red/15 text-cyber-neon-red border-cyber-neon-red/40',
+  expert: 'bg-cyber-neon-purple/15 text-cyber-neon-purple border-cyber-neon-purple/40',
 };
 
 export const MissionCard: React.FC<MissionCardProps> = ({ level, onOpen, onHint }) => {
   const navigate = useNavigate();
-  const status = level.status || 'pending';
 
   const statusBadge = () => {
-    if (status === 'completed') {
-      return (
-        <div className="flex items-center space-x-1 text-cyber-neon-green text-xs font-semibold">
-          <BadgeCheck className="h-4 w-4" />
-          <span>COMPLETED</span>
-        </div>
-      );
-    }
-    if (status === 'locked') {
-      return (
-        <div className="flex items-center space-x-1 text-cyber-text-secondary text-xs font-semibold">
-          <Lock className="h-4 w-4" />
-          <span>LOCKED</span>
-        </div>
-      );
-    }
-    return (
-      <div className="flex items-center space-x-1 text-cyber-neon-yellow text-xs font-semibold">
-        <Zap className="h-4 w-4" />
-        <span>PENDING</span>
-      </div>
-    );
+    // Status is determined by completion, not stored on level
+    // Return null for now - status can be determined from team progress if needed
+    return null;
   };
 
   return (
@@ -63,7 +44,7 @@ export const MissionCard: React.FC<MissionCardProps> = ({ level, onOpen, onHint 
           <div className="flex flex-wrap items-center gap-4 text-sm text-cyber-text-secondary">
             <span className="flex items-center space-x-1">
               <Trophy className="h-4 w-4 text-cyber-neon-yellow" />
-              <span>{level.baseScore || level.points || 0} pts</span>
+              <span>{level.basePoints || 0} pts</span>
             </span>
             <span className="flex items-center space-x-1">
               <Clock className="h-4 w-4 text-cyber-text-secondary" />

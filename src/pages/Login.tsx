@@ -5,7 +5,7 @@ import { auth } from '@/config/firebase';
 import { firestoreAPI } from '@/utils/firestore';
 import { Shield, Terminal, Lock, User, Mail, Key, Zap, Building, GraduationCap, Phone, BookOpen } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { UserRole } from '@/types';
+// import { UserRole } from '@/types'; // Unused
 
 export const Login: React.FC = () => {
   const [email, setEmail] = useState('');

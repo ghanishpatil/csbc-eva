@@ -11,15 +11,15 @@ import { Activity, Target, Trophy, Clock } from 'lucide-react';
 
 export const TeamProgress: React.FC = () => {
   const { user } = useAuth();
-  const teamId = user?.teamId || user?.id || user?.uid || user?.email;
+  const teamId = user?.teamId || user?.id || user?.email;
   const { loadData, levels, submissions, activity } = useCaptainStore();
 
   useEffect(() => {
     if (teamId) loadData(teamId);
   }, [teamId, loadData]);
 
-  const completed = submissions.filter((s) => s.status === 'correct').length;
-  const score = submissions.reduce((sum, s) => sum + (s.scoreAwarded || 0), 0);
+  const completed = submissions.filter((s) => s.status === 'correct' || s.finalScore > 0).length;
+  const score = submissions.reduce((sum, s) => sum + (s.scoreAwarded || s.finalScore || 0), 0);
   const avgTime = useMemo(() => {
     const times = submissions.map((s) => s.timePenalty || 0);
     if (!times.length) return 0;
@@ -29,7 +29,7 @@ export const TeamProgress: React.FC = () => {
   const progressData = useMemo(() => {
     return levels.map((l) => ({
       label: l.title,
-      value: submissions.find((s) => s.levelId === l.id)?.scoreAwarded || 0,
+      value: submissions.find((s) => s.levelId === l.id)?.scoreAwarded || submissions.find((s) => s.levelId === l.id)?.finalScore || 0,
       color: 'linear-gradient(90deg, #4C9CFF, #3CCF91)',
     }));
   }, [levels, submissions]);

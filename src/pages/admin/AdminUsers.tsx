@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
-import { collection, onSnapshot, doc, updateDoc, deleteDoc, signInWithCustomToken } from 'firebase/firestore';
-import { db, auth } from '../../config/firebase';
-import { signInWithCustomToken as firebaseSignInWithCustomToken } from 'firebase/auth';
+import { collection, onSnapshot, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { db } from '../../config/firebase';
+// import { signInWithCustomToken as firebaseSignInWithCustomToken } from 'firebase/auth'; // Unused
 import { Users, Shield, UserX, Search, Filter, Edit2, Trash2, Ban, CheckCircle, Building, GraduationCap, Phone, Mail, Calendar, Eye, X, LogIn, ExternalLink } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { CyberCard } from '@/components/ui/CyberCard';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { impersonateUser } from '@/api/adminApi';
-import { NeonButton } from '@/components/ui/NeonButton';
+// import { NeonButton } from '@/components/ui/NeonButton'; // Unused
 
 interface User {
   id: string;
@@ -60,15 +60,15 @@ const AdminUsers = () => {
     };
   }, []);
 
-  const handleUpdateRole = async (userId: string, newRole: string) => {
-    try {
-      await updateDoc(doc(db, 'users', userId), { role: newRole });
-      toast.success('User role updated successfully');
-    } catch (error) {
-      console.error('Error updating role:', error);
-      toast.error('Failed to update role');
-    }
-  };
+  // const handleUpdateRole = async (userId: string, newRole: string) => {
+  //   try {
+  //     await updateDoc(doc(db, 'users', userId), { role: newRole });
+  //     toast.success('User role updated successfully');
+  //   } catch (error) {
+  //     console.error('Error updating role:', error);
+  //     toast.error('Failed to update role');
+  //   }
+  // }; // Unused function
 
   const handleToggleBlock = async (user: User) => {
     try {
@@ -128,8 +128,8 @@ const AdminUsers = () => {
       
       if (response.success && response.customToken) {
         // Sign in with the custom token in a new window
-        // Store current admin session info
-        const currentAdmin = auth.currentUser;
+        // Store current admin session info (commented out as unused)
+        // const currentAdmin = auth.currentUser;
         
         toast.success(`Impersonation ready for ${selectedUser.displayName}`);
         

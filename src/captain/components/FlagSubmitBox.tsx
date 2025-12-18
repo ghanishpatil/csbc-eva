@@ -20,7 +20,9 @@ export const FlagSubmitBox: React.FC<FlagSubmitBoxProps> = ({ teamId, levelId, o
     }
     setLoading(true);
     try {
-      await captainApi.submitFlag({ teamId, levelId, flag });
+      // Note: Flag submission should use participant API, not captain API
+      // This component may need refactoring to use the correct API endpoint
+      await captainApi.post('/api/participant/submit-flag', { teamId, levelId, flag });
       toast.success('Flag submitted');
       setFlag('');
       onSuccess?.();

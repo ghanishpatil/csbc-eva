@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Settings, AlertTriangle, RefreshCw, Download, Upload, Trash2, Database, Lock } from 'lucide-react';
+import { AlertTriangle, Download, Trash2, Database, Lock } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { collection, getDocs, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '@/config/firebase';

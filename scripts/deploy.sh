@@ -22,9 +22,10 @@ if ! command -v docker &> /dev/null; then
     exit 1
 fi
 
-# Check if docker-compose is installed
-if ! command -v docker-compose &> /dev/null; then
-    echo -e "${RED}Error: Docker Compose is not installed${NC}"
+# Check if docker compose is available (v2 uses 'docker compose' as subcommand)
+if ! docker compose version &> /dev/null; then
+    echo -e "${RED}Error: Docker Compose is not available${NC}"
+    echo "Make sure Docker Desktop is running and WSL integration is enabled"
     exit 1
 fi
 
@@ -46,13 +47,13 @@ echo ""
 
 # Build and deploy
 echo -e "${YELLOW}Building Docker images...${NC}"
-docker-compose build
+docker compose build
 
 echo -e "${GREEN}✓ Docker images built successfully${NC}"
 echo ""
 
 echo -e "${YELLOW}Starting services...${NC}"
-docker-compose up -d
+docker compose up -d
 
 echo -e "${GREEN}✓ Services started successfully${NC}"
 echo ""
@@ -85,9 +86,9 @@ echo "  - Frontend: http://localhost"
 echo "  - Backend:  http://localhost:5000"
 echo ""
 echo "To view logs:"
-echo "  docker-compose logs -f"
+echo "  docker compose logs -f"
 echo ""
 echo "To stop services:"
-echo "  docker-compose down"
+echo "  docker compose down"
 echo ""
 

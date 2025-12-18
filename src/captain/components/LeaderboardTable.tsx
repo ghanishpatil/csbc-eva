@@ -13,7 +13,7 @@ interface LeaderboardTableProps {
 export const LeaderboardTable: React.FC<LeaderboardTableProps> = ({ 
   data, 
   title = "Team Leaderboard",
-  showGroup = false
+  showGroup: _showGroup = false // Unused but kept for API compatibility
 }) => {
   const getRankIcon = (rank: number) => {
     if (rank === 1) return <Trophy className="h-5 w-5 text-cyber-neon-yellow" />;

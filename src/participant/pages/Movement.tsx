@@ -1,16 +1,16 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
-import { useAuth } from '@/hooks/useAuth';
+// import { useAuth } from '@/hooks/useAuth'; // Unused
 import { MapPin, CheckCircle2, ArrowRight, Trophy, Clock } from 'lucide-react';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { CyberCard } from '@/components/ui/CyberCard';
 import { SectionTitle } from '@/components/ui/SectionTitle';
 import { NeonButton } from '@/components/ui/NeonButton';
-import toast from 'react-hot-toast';
+// import toast from 'react-hot-toast'; // Unused
 
 export const Movement = () => {
-  const { user } = useAuth();
+  // const { user } = useAuth(); // Unused
   const navigate = useNavigate();
   const location = useLocation();
   const [countdown, setCountdown] = useState(5);

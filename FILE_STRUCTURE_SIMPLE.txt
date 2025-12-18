@@ -1,0 +1,150 @@
+Mission Exploit 2.0 - Project File Structure
+
+ROOT DIRECTORY
+├── .env                          # Frontend environment variables
+├── .env.production              # Production environment
+├── package.json                 # Frontend dependencies
+├── vite.config.ts              # Vite configuration
+├── tailwind.config.js          # TailwindCSS config
+├── tsconfig.json               # TypeScript config
+├── index.html                  # HTML entry point
+├── firebase.json               # Firebase config
+├── firestore.rules             # Database security rules
+├── firestore.indexes.json      # Database indexes
+├── docker-compose.yml          # Docker Compose config
+├── Dockerfile.frontend         # Frontend Docker image
+
+FRONTEND (src/)
+├── main.tsx                    # React entry point
+├── App.tsx                     # Main app & routing
+├── index.css                   # Global styles
+│
+├── api/                        # API clients
+│   ├── adminApi.ts
+│   └── participantApi.ts
+│
+├── config/                     # Configuration
+│   ├── api.ts                  # API base URL
+│   └── firebase.ts             # Firebase setup
+│
+├── components/                 # React components
+│   ├── admin/                  # Admin components
+│   │   ├── AdminLayout.tsx
+│   │   ├── AdminNav.tsx
+│   │   ├── LevelManager.tsx
+│   │   ├── TeamManager.tsx
+│   │   └── UserManager.tsx
+│   ├── ui/                     # Shared UI components
+│   │   ├── CyberCard.tsx
+│   │   ├── NeonButton.tsx
+│   │   ├── StatCard.tsx
+│   │   └── PageHeader.tsx
+│   ├── Layout.tsx              # Main layout
+│   ├── Leaderboard.tsx
+│   └── ProtectedRoute.tsx      # Route protection
+│
+├── pages/                      # Page components
+│   ├── admin/                  # Admin portal pages
+│   │   ├── AdminDashboard.tsx
+│   │   ├── AdminLevels.tsx
+│   │   ├── AdminTeams.tsx
+│   │   ├── AdminUsers.tsx
+│   │   ├── AdminGroups.tsx
+│   │   ├── AdminEventControl.tsx
+│   │   └── AdminSubmissions.tsx
+│   ├── participant/            # Participant pages
+│   │   └── pages/
+│   │       ├── Dashboard.tsx
+│   │       ├── ActiveMission.tsx
+│   │       ├── CheckIn.tsx
+│   │       └── TeamManagement.tsx
+│   ├── LandingPage.tsx         # Public landing
+│   ├── Login.tsx               # Auth page
+│   └── LeaderboardPage.tsx     # Public leaderboard
+│
+├── captain/                    # Captain portal
+│   ├── api/
+│   │   └── captainApi.ts
+│   ├── components/             # Captain components
+│   │   ├── CaptainNavbar.tsx
+│   │   ├── MissionCard.tsx
+│   │   ├── HintPanel.tsx
+│   │   └── LeaderboardTable.tsx
+│   ├── pages/                  # Captain pages
+│   │   ├── Dashboard.tsx
+│   │   ├── Levels.tsx
+│   │   ├── Leaderboard.tsx
+│   │   └── TeamDetail.tsx
+│   └── state/
+│       └── captainStore.ts     # Captain state
+│
+├── hooks/                      # Custom hooks
+│   ├── useAuth.ts
+│   └── useFirestoreListener.ts
+│
+├── store/                      # Zustand stores
+│   ├── appStore.ts             # Global state
+│   ├── authStore.ts            # Auth state
+│   └── adminStore.ts           # Admin state
+│
+├── types/                      # TypeScript types
+│   └── index.ts
+│
+└── utils/                      # Utilities
+    ├── firestore.ts
+    ├── helpers.ts
+    └── scoring.ts
+
+BACKEND (backend/)
+├── .env                        # Backend environment
+├── package.json                # Backend dependencies
+├── Dockerfile                  # Backend Docker image
+│
+└── src/
+    ├── server.js               # Express server entry
+    │
+    ├── controllers/            # Request handlers
+    │   ├── adminController.js
+    │   ├── captainController.js
+    │   ├── flagController.js
+    │   ├── participantController.js
+    │   └── teamController.js
+    │
+    ├── routes/                 # API routes
+    │   ├── admin.js
+    │   ├── captain.js
+    │   ├── participant.js
+    │   └── submitFlag.js
+    │
+    ├── services/               # Business logic
+    │   ├── eventService.js
+    │   ├── flagService.js
+    │   ├── scoringService.js
+    │   └── hintService.js
+    │
+    ├── middleware/             # Express middleware
+    │   ├── rateLimiter.js
+    │   └── validateRequest.js
+    │
+    └── utils/                  # Utilities
+        ├── firebase.js         # Firebase Admin SDK
+        └── cryptoUtils.js      # Crypto functions
+
+SCRIPTS (scripts/)
+├── deploy.sh                   # Bash deployment
+├── deploy.ps1                  # PowerShell deployment
+└── health-check.sh             # Health check
+
+KEY FILES:
+- Frontend Entry: src/main.tsx → src/App.tsx
+- Backend Entry: backend/src/server.js
+- Config: vite.config.ts, tailwind.config.js
+- Firebase: firebase.json, firestore.rules
+- Docker: docker-compose.yml, Dockerfile.frontend
+
+PORTALS:
+- Admin: src/pages/admin/ + src/components/admin/
+- Captain: src/captain/pages/ + src/captain/components/
+- Participant: src/participant/pages/
+- Public: src/pages/LandingPage.tsx, LeaderboardPage.tsx
+

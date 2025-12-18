@@ -1,6 +1,6 @@
 import { CyberCard } from '@/components/ui/CyberCard';
 import { SectionTitle } from '@/components/ui/SectionTitle';
-import { AlertTriangle, Clock, Target, Users } from 'lucide-react';
+import { AlertTriangle, Target } from 'lucide-react';
 import { SubmissionLog } from '@/captain/api/captainApi';
 
 interface SuspiciousActivityDetectorProps {
@@ -79,7 +79,7 @@ export const SuspiciousActivityDetector: React.FC<SuspiciousActivityDetectorProp
       return acc;
     }, {} as Record<number, SubmissionLog[]>);
 
-    Object.entries(timeGroups).forEach(([timeKey, logsAtTime]) => {
+    Object.entries(timeGroups).forEach(([, logsAtTime]) => {
       if (logsAtTime.length > 3) {
         const uniqueTeams = new Set(logsAtTime.map(log => log.teamId));
         if (uniqueTeams.size > 2) {

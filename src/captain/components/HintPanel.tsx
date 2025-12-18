@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { NeonButton } from '@/components/ui/NeonButton';
 import { captainApi } from '@/captain/api/captainApi';
 import { toast } from 'react-hot-toast';
-import { Clock, MinusCircle, PlusCircle } from 'lucide-react';
+import { Clock, MinusCircle } from 'lucide-react';
 
 interface HintPanelProps {
   teamId: string;
@@ -24,7 +24,9 @@ export const HintPanel: React.FC<HintPanelProps> = ({
   const requestHint = async (type: 'points' | 'time') => {
     setLoading(true);
     try {
-      await captainApi.requestHint({ teamId, levelId, hintType: type });
+      // Note: Hint request should use participant API, not captain API
+      // This component may need refactoring to use the correct API endpoint
+      await captainApi.post('/api/participant/request-hint', { teamId, levelId, hintType: type });
       toast.success('Hint requested');
       onHint?.();
     } catch (error: any) {

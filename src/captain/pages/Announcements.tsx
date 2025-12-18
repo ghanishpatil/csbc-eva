@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Layout } from '@/components/Layout';
 import CaptainNavbar from '@/captain/components/CaptainNavbar';
 import { PageHeader } from '@/components/ui/PageHeader';

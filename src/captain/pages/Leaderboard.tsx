@@ -3,17 +3,17 @@ import { Layout } from '@/components/Layout';
 import CaptainNavbar from '@/captain/components/CaptainNavbar';
 import { PageHeader } from '@/components/ui/PageHeader';
 import LeaderboardTable from '@/captain/components/LeaderboardTable';
-import { useAuth } from '@/hooks/useAuth';
+// import { useAuth } from '@/hooks/useAuth'; // Unused
 import { Trophy } from 'lucide-react';
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { db } from '@/config/firebase';
-import { LeaderboardEntry, Team, Group } from '@/types';
+import { LeaderboardEntry, Team } from '@/types';
 
 export const Leaderboard: React.FC = () => {
-  const { user } = useAuth();
+  // const { user } = useAuth(); // Unused
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
-  const [groups, setGroups] = useState<Group[]>([]);
+  // const [groups, setGroups] = useState<Group[]>([]); // Unused
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -44,13 +44,9 @@ export const Leaderboard: React.FC = () => {
       setTeams(data);
     });
 
-    // Subscribe to groups
-    const groupsUnsub = onSnapshot(collection(db, 'groups'), (snapshot) => {
-      const data = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Group[];
-      setGroups(data);
+    // Subscribe to groups (unused but kept for potential future use)
+    const groupsUnsub = onSnapshot(collection(db, 'groups'), () => {
+      // Groups not needed for this view
     });
 
     return () => {

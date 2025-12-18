@@ -1,4 +1,4 @@
-import { Users, Trophy, Target, TrendingUp } from 'lucide-react';
+import { Trophy, Target, TrendingUp } from 'lucide-react';
 import { Team } from '@/captain/api/captainApi';
 
 interface TeamPerformanceCardProps {

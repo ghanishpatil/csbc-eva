@@ -4,7 +4,7 @@ import { Play, Pause, Square, Clock, AlertTriangle, RefreshCw, Zap, Users, Targe
 import toast from 'react-hot-toast';
 import { CyberCard } from '@/components/ui/CyberCard';
 import { PageHeader } from '@/components/ui/PageHeader';
-import { collection, onSnapshot, query, where } from 'firebase/firestore';
+import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from '@/config/firebase';
 
 interface EventStatus {

@@ -5,6 +5,7 @@ interface StatCardProps {
   label: string;
   value: string | number;
   color: 'red' | 'blue' | 'green' | 'yellow' | 'purple';
+  subtitle?: string; // Optional subtitle
   trend?: {
     value: string;
     isPositive: boolean;
@@ -44,7 +45,7 @@ const colorMap = {
   },
 };
 
-export const StatCard: React.FC<StatCardProps> = ({ icon: Icon, label, value, color, trend }) => {
+export const StatCard: React.FC<StatCardProps> = ({ icon: Icon, label, value, color, subtitle, trend }) => {
   const colors = colorMap[color];
 
   return (
@@ -75,6 +76,11 @@ export const StatCard: React.FC<StatCardProps> = ({ icon: Icon, label, value, co
         <div className="text-sm text-cyber-text-secondary uppercase tracking-wider font-medium">
           {label}
         </div>
+        {subtitle && (
+          <div className="text-xs text-cyber-text-secondary/70 mt-1">
+            {subtitle}
+          </div>
+        )}
       </div>
 
       {/* Glow effect on hover */}

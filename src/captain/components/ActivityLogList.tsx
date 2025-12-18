@@ -15,10 +15,10 @@ export const ActivityLogList: React.FC<ActivityLogListProps> = ({ items }) => {
             <div>
               <div className="text-sm font-semibold text-cyber-text-primary">{item.levelTitle || item.levelId}</div>
               <div className="text-xs text-cyber-text-secondary">
-                {item.status === 'correct' ? 'Correct' : 'Incorrect'} • {item.submittedAt ? new Date(item.submittedAt).toLocaleString() : '—'}
+                {item.status === 'correct' || item.finalScore > 0 ? 'Correct' : 'Incorrect'} • {item.submittedAt ? new Date(item.submittedAt).toLocaleString() : '—'}
               </div>
             </div>
-            <div className="text-sm font-semibold text-cyber-neon-green">{item.scoreAwarded ?? 0} pts</div>
+            <div className="text-sm font-semibold text-cyber-neon-green">{item.scoreAwarded ?? item.finalScore ?? 0} pts</div>
           </div>
         ))}
         {items.length === 0 && <div className="text-sm text-cyber-text-secondary">No activity yet.</div>}

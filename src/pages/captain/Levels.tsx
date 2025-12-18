@@ -5,7 +5,7 @@ import { useAppStore } from '@/store/appStore';
 import { useAuthStore } from '@/store/authStore';
 import { firestoreAPI } from '@/utils/firestore';
 import { Submission } from '@/types';
-import { Target, Trophy, Clock, Shield, Activity, Zap, AlertTriangle, Users } from 'lucide-react';
+import { Target, Trophy, Clock, Shield, Activity, AlertTriangle } from 'lucide-react';
 
 export const CaptainLevels: React.FC = () => {
   const { levels, teams } = useAppStore();

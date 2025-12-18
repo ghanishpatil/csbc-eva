@@ -6,7 +6,7 @@ import { Level, HintType } from '@/types';
 export const calculateScore = (
   basePoints: number,
   hintsUsed: number,
-  timeTaken: number,
+  _timeTaken: number, // Unused but kept for API compatibility
   hintType: HintType,
   pointDeduction: number = 0,
   timePenalty: number = 0
@@ -41,7 +41,7 @@ export const calculateScore = (
 /**
  * Generate hint content based on level and hint number
  */
-export const generateHintContent = (level: Level, hintNumber: number): string => {
+export const generateHintContent = (_level: Level, hintNumber: number): string => {
   // This is a placeholder. In production, hints would be stored in the level data
   const hints: Record<number, string> = {
     1: `Hint ${hintNumber}: Look for common vulnerabilities in the code.`,

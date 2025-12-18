@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { collection, onSnapshot, getDocs } from 'firebase/firestore';
+import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { createGroup, updateGroup, deleteGroup, updateTeam } from '../../api/adminApi';
 import { Users, Plus, Edit2, Trash2, Shuffle, TrendingUp, Award, BarChart3, AlertTriangle, Shield, UserPlus } from 'lucide-react';

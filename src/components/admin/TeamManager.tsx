@@ -3,7 +3,7 @@ import { firestoreAPI } from '@/utils/firestore';
 import { useAppStore } from '@/store/appStore';
 import { Users, Edit2, Trash2, Plus, Zap, Shield } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { generateTeamName, generateGroupName, distributeTeamsIntoGroups } from '@/utils/helpers';
+import { generateTeamName, generateGroupName } from '@/utils/helpers';
 
 export const TeamManager: React.FC = () => {
   const { teams, groups } = useAppStore();
@@ -31,7 +31,7 @@ export const TeamManager: React.FC = () => {
         groupIds.push(groupId);
       }
 
-      const distribution = distributeTeamsIntoGroups(numberOfTeams, numberOfGroups);
+      // const distribution = distributeTeamsIntoGroups(numberOfTeams, numberOfGroups); // Unused
 
       for (let i = 0; i < numberOfTeams; i++) {
         const groupIndex = Math.floor(i / Math.ceil(numberOfTeams / numberOfGroups));

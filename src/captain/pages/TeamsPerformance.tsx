@@ -5,8 +5,8 @@ import CaptainNavbar from '@/captain/components/CaptainNavbar';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { CyberCard } from '@/components/ui/CyberCard';
 import { SectionTitle } from '@/components/ui/SectionTitle';
-import { captainApiClient, GroupOverview, Team } from '@/captain/api/captainApi';
-import { Users, Trophy, Target, Activity, TrendingUp, Eye, Grid3x3 } from 'lucide-react';
+import { captainApiClient, GroupOverview } from '@/captain/api/captainApi';
+import { Users, Eye, Grid3x3 } from 'lucide-react';
 import { TeamPerformanceCard } from '@/captain/components/TeamPerformanceCard';
 import toast from 'react-hot-toast';
 

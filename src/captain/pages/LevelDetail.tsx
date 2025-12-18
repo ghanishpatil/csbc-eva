@@ -14,7 +14,7 @@ import { Trophy, Target, Clock, AlertTriangle } from 'lucide-react';
 export const LevelDetail: React.FC = () => {
   const { levelId } = useParams<{ levelId: string }>();
   const { user } = useAuth();
-  const teamId = user?.teamId || user?.id || user?.uid || user?.email;
+  const teamId = user?.teamId || user?.id || user?.email;
   const { levels, submissions, loadData } = useCaptainStore();
 
   useEffect(() => {
@@ -37,7 +37,7 @@ export const LevelDetail: React.FC = () => {
 
   const hintsUsed = submission?.hintsUsed || 0;
   const timePenalty = submission?.timePenalty || 0;
-  const scoreAwarded = submission?.scoreAwarded || 0;
+  const scoreAwarded = submission?.scoreAwarded || submission?.finalScore || 0;
 
   return (
     <Layout>
@@ -49,13 +49,13 @@ export const LevelDetail: React.FC = () => {
           title={level.title}
           subtitle={`Mission #${level.number || level.id}`}
           status={{
-            label: level.status === 'completed' ? 'COMPLETED' : 'IN PROGRESS',
-            color: level.status === 'completed' ? 'green' : 'yellow',
+            label: submission ? 'COMPLETED' : 'IN PROGRESS',
+            color: submission ? 'green' : 'yellow',
           }}
         />
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <MissionStatCard icon={Trophy} label="Base Score" value={`${level.baseScore || level.points || 0}`} color="yellow" />
+          <MissionStatCard icon={Trophy} label="Base Score" value={`${level.basePoints || 0}`} color="yellow" />
           <MissionStatCard icon={Clock} label="Time Penalty" value={`${timePenalty} pts`} color="blue" />
           <MissionStatCard icon={AlertTriangle} label="Hints Used" value={hintsUsed} color="red" />
         </div>
@@ -96,7 +96,7 @@ export const LevelDetail: React.FC = () => {
                 )}
               </div>
               <ScoreBreakdown
-                baseScore={level.baseScore || level.points || 0}
+                baseScore={level.basePoints || 0}
                 hintPenalty={hintsUsed * 50}
                 timePenalty={timePenalty}
                 finalScore={scoreAwarded}
