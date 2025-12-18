@@ -1,0 +1,78 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // SECURITY: All writes must go through backend (Firebase Admin SDK)
+    // Frontend clients can ONLY read data
+    // Backend Admin SDK bypasses these rules
+    
+    // Users collection - READ ONLY for clients
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      // All writes must go through backend API
+      allow write: if false;
+    }
+    
+    // Teams collection - READ ONLY for clients
+    match /teams/{teamId} {
+      allow read: if isAuthenticated();
+      // All writes must go through backend API
+      allow write: if false;
+    }
+    
+    // Groups collection - READ ONLY for clients
+    match /groups/{groupId} {
+      allow read: if isAuthenticated();
+      // All writes must go through backend API
+      allow write: if false;
+    }
+    
+    // Levels collection - READ ONLY for clients
+    match /levels/{levelId} {
+      allow read: if isAuthenticated();
+      // All writes must go through backend API
+      allow write: if false;
+    }
+    
+    // Submissions collection - READ ONLY for clients
+    match /submissions/{submissionId} {
+      allow read: if isAuthenticated();
+      // All writes must go through backend API
+      allow write: if false;
+    }
+    
+    // Hints collection - READ ONLY for clients
+    match /hints/{hintId} {
+      allow read: if isAuthenticated();
+      // All writes must go through backend API
+      allow write: if false;
+    }
+    
+    // Leaderboard collection - READ ONLY for clients
+    match /leaderboard/{entryId} {
+      allow read: if isAuthenticated();
+      // All writes must go through backend API
+      allow write: if false;
+    }
+    
+    // Config collection - READ ONLY for clients
+    match /config/{configId} {
+      allow read: if isAuthenticated();
+      // All writes must go through backend API
+      allow write: if false;
+    }
+    
+    // Announcements collection - READ ONLY for clients
+    match /announcements/{announcementId} {
+      allow read: if isAuthenticated();
+      // All writes must go through backend API
+      allow write: if false;
+    }
+  }
+}
+

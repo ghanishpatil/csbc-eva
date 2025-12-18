@@ -1,0 +1,84 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "submissions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "teamId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "submittedAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "hints",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "teamId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "levelId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "usedAt",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "levels",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "groupId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "number",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "hint_usage",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "teamId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "levelId",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "hint_usage",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "levelId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "teamId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "usedAt",
+          "order": "ASCENDING"
+        }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
+
