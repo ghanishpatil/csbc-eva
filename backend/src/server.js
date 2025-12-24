@@ -190,6 +190,5 @@ process.on('SIGINT', () => {
   console.log('\nSIGINT signal received');
 });
 
-export default app;
 
 
