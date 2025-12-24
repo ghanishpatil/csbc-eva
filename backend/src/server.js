@@ -42,12 +42,8 @@ app.use(helmet({
 
 // CORS configuration
 app.use(cors({
-  origin: NODE_ENV === 'production'
-    ? true
-    : (process.env.FRONTEND_URL || 'http://localhost:3000'),
+  origin: true,
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Admin-Key'],
 }));
 
 // Body parsers
@@ -62,6 +58,9 @@ app.use(requestLogger);
 
 // General rate limiting
 app.use('/api/', generalLimiter);
+app.get('/', (req, res) => {
+  res.status(200).send('OK');
+});
 
 // ============================================================================
 // ROUTES
