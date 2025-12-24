@@ -26,7 +26,8 @@ try {
 
 // Initialize Express app
 const app = express();
-const PORT = Number(process.env.PORT) || 8080;
+// Railway provides PORT; use it directly so we don't conflict with the platform
+const PORT = Number(process.env.PORT);
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
 // ============================================================================
@@ -119,6 +120,15 @@ app.get('/api', (req, res) => {
 /**
  * Mount routes
  */
+
+// Root route used by deployment platforms (e.g. Railway) for health checks
+app.get('/', (req, res) => {
+  res.status(200).json({
+    success: true,
+    status: 'OK',
+  });
+});
+
 app.use('/api', submitFlagRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/captain', captainRoutes);
@@ -172,15 +182,13 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log('\n✅ Server is ready to accept requests\n');
 });
 
-// Graceful shutdown
+// Graceful shutdown logging (do not force-exit; let the platform manage lifecycle)
 process.on('SIGTERM', () => {
-  console.log('SIGTERM signal received: closing HTTP server');
-  process.exit(0);
+  console.log('SIGTERM signal received');
 });
 
 process.on('SIGINT', () => {
-  console.log('\nSIGINT signal received: closing HTTP server');
-  process.exit(0);
+  console.log('\nSIGINT signal received');
 });
 
 export default app;
