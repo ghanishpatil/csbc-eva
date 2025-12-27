@@ -26,8 +26,8 @@ try {
 
 // Initialize Express app
 const app = express();
-// Railway provides PORT; use it directly so we don't conflict with the platform
-const PORT = Number(process.env.PORT);
+// Railway provides PORT; fallback to 8080 if not set (for local dev)
+const PORT = Number(process.env.PORT) || 8080;
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
 // ============================================================================
@@ -58,9 +58,6 @@ app.use(requestLogger);
 
 // General rate limiting
 app.use('/api/', generalLimiter);
-app.get('/', (req, res) => {
-  res.status(200).send('OK');
-});
 
 // ============================================================================
 // ROUTES
