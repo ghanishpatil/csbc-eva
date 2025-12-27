@@ -61,6 +61,30 @@
     transform: translateY(-4px);
   }
 
+  /* Responsive Table Wrapper */
+  .table-responsive {
+    @apply overflow-x-auto -mx-4 sm:mx-0;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(76, 156, 255, 0.3) transparent;
+  }
+
+  .table-responsive::-webkit-scrollbar {
+    height: 8px;
+  }
+
+  .table-responsive::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .table-responsive::-webkit-scrollbar-thumb {
+    background: rgba(76, 156, 255, 0.3);
+    border-radius: 4px;
+  }
+
+  .table-responsive::-webkit-scrollbar-thumb:hover {
+    background: rgba(76, 156, 255, 0.5);
+  }
+
   /* Enhanced Neon Buttons */
   .neon-button {
     @apply px-6 py-3 rounded-lg font-semibold transition-all duration-300 relative overflow-hidden;

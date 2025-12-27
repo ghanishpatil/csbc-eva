@@ -36,14 +36,14 @@ export const CaptainNavbar: React.FC = () => {
             <Link
               key={tab.to}
               to={tab.to}
-              className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-cyber text-sm transition-all border ${
+              className={`flex items-center space-x-1.5 sm:space-x-2 px-3 sm:px-4 py-2 rounded-lg font-cyber text-xs sm:text-sm transition-all border ${
                 active 
                   ? `${tab.activeBg} ${tab.color} border-cyber-border shadow-cyber-glow` 
                   : 'text-cyber-text-secondary border-cyber-border/60 hover:border-cyber-border hover:text-cyber-text-primary'
               }`}
             >
-              <Icon className={`h-4 w-4 ${active ? tab.color : 'text-cyber-text-secondary'}`} />
-              <span>{tab.label}</span>
+              <Icon className={`h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0 ${active ? tab.color : 'text-cyber-text-secondary'}`} />
+              <span className="whitespace-nowrap">{tab.label}</span>
             </Link>
           );
         })}

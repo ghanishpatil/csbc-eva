@@ -355,7 +355,7 @@ export const TeamManagement = () => {
                     <NeonButton
                       onClick={copyInviteCodeOnly}
                       color="yellow"
-                      className="whitespace-nowrap"
+                      className="w-full sm:w-auto"
                     >
                       {copied ? (
                         <>
@@ -372,7 +372,7 @@ export const TeamManagement = () => {
                     <NeonButton
                       onClick={copyInviteCode}
                       color="blue"
-                      className="whitespace-nowrap"
+                      className="w-full sm:w-auto"
                     >
                       {copied ? (
                         <>

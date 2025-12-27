@@ -42,15 +42,15 @@ export const LeaderboardTable: React.FC<LeaderboardTableProps> = ({
         </div>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full">
+      <div className="table-responsive">
+        <table className="w-full min-w-[600px]">
           <thead>
             <tr className="text-cyber-text-secondary text-xs uppercase tracking-wider border-b border-cyber-border">
-              <th className="text-left py-3 px-4">Rank</th>
-              <th className="text-left py-3 px-4">Team</th>
-              <th className="text-center py-3 px-4">Score</th>
-              <th className="text-center py-3 px-4">Missions</th>
-              <th className="text-left py-3 px-4">Last Activity</th>
+              <th className="text-left py-3 px-3 sm:px-4">Rank</th>
+              <th className="text-left py-3 px-3 sm:px-4">Team</th>
+              <th className="text-center py-3 px-2 sm:px-4">Score</th>
+              <th className="text-center py-3 px-2 sm:px-4">Missions</th>
+              <th className="text-left py-3 px-2 sm:px-4 hidden sm:table-cell">Last Activity</th>
             </tr>
           </thead>
           <tbody>
@@ -66,32 +66,32 @@ export const LeaderboardTable: React.FC<LeaderboardTableProps> = ({
                   key={row.id || row.teamId || index} 
                   className={`border-b ${getRankBg(rank)} transition-all`}
                 >
-                  <td className="py-4 px-4">
-                    <div className="flex items-center justify-center w-10 h-10">
+                  <td className="py-3 sm:py-4 px-2 sm:px-4">
+                    <div className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10">
                       {getRankIcon(rank)}
                     </div>
                   </td>
-                  <td className="py-4 px-4">
-                    <div className={`font-semibold ${isTopThree ? 'text-cyber-neon-yellow' : 'text-cyber-text-primary'}`}>
+                  <td className="py-3 sm:py-4 px-2 sm:px-4">
+                    <div className={`font-semibold text-sm sm:text-base ${isTopThree ? 'text-cyber-neon-yellow' : 'text-cyber-text-primary'}`}>
                       {teamName}
                     </div>
                     {isTopThree && (
-                      <div className="text-xs text-cyber-neon-green font-mono">TOP PERFORMER</div>
+                      <div className="text-[10px] sm:text-xs text-cyber-neon-green font-mono">TOP PERFORMER</div>
                     )}
                   </td>
-                  <td className="py-4 px-4 text-center">
-                    <div className={`text-xl font-bold ${isTopThree ? 'text-cyber-neon-yellow' : 'text-cyber-text-primary'}`}>
+                  <td className="py-3 sm:py-4 px-2 sm:px-4 text-center">
+                    <div className={`text-lg sm:text-xl font-bold ${isTopThree ? 'text-cyber-neon-yellow' : 'text-cyber-text-primary'}`}>
                       {row.score ?? 0}
                     </div>
-                    <div className="text-xs text-cyber-text-secondary">pts</div>
+                    <div className="text-[10px] sm:text-xs text-cyber-text-secondary">pts</div>
                   </td>
-                  <td className="py-4 px-4 text-center">
+                  <td className="py-3 sm:py-4 px-2 sm:px-4 text-center">
                     <div className="inline-flex items-center space-x-1 px-2 py-1 bg-cyber-bg-darker rounded border border-cyber-neon-green/30">
                       <Target className="h-3 w-3 text-cyber-neon-green" />
-                      <span className="text-cyber-neon-green font-bold">{row.levelsCompleted ?? 0}</span>
+                      <span className="text-cyber-neon-green font-bold text-xs sm:text-sm">{row.levelsCompleted ?? 0}</span>
                     </div>
                   </td>
-                  <td className="py-4 px-4 text-cyber-text-secondary text-sm font-mono">
+                  <td className="py-3 sm:py-4 px-2 sm:px-4 text-cyber-text-secondary text-xs sm:text-sm font-mono hidden sm:table-cell">
                     {row.lastSubmissionAt ? formatDate(row.lastSubmissionAt) : '—'}
                   </td>
                 </tr>

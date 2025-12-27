@@ -32,9 +32,15 @@ export const NeonButton: React.FC<NeonButtonProps> = ({
   };
 
   const sizeClasses = {
-    sm: 'px-4 py-2 text-sm',
-    md: 'px-6 py-3 text-base',
-    lg: 'px-8 py-4 text-lg',
+    sm: 'px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm min-h-[36px] sm:min-h-[40px]',
+    md: 'px-4 py-2.5 sm:px-6 sm:py-3 text-sm sm:text-base min-h-[44px] sm:min-h-[48px]',
+    lg: 'px-6 py-3 sm:px-8 sm:py-4 text-base sm:text-lg min-h-[52px] sm:min-h-[56px]',
+  };
+
+  const iconSizes = {
+    sm: 'w-3.5 h-3.5 sm:w-4 sm:h-4',
+    md: 'w-4 h-4 sm:w-5 sm:h-5',
+    lg: 'w-5 h-5 sm:w-6 sm:h-6',
   };
 
   return (
@@ -45,28 +51,31 @@ export const NeonButton: React.FC<NeonButtonProps> = ({
       className={`
         ${colorClasses[color]} 
         ${sizeClasses[size]}
-        flex items-center justify-center
+        inline-flex items-center justify-center
         ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:scale-[1.02] active:scale-[0.98]'} 
-        ${className}
         font-cyber
         font-semibold
         uppercase
         tracking-wider
         relative
-        overflow-hidden
+        overflow-visible
         group
         rounded-lg
         transition-all
         duration-200
+        text-center
+        ${!className.includes('whitespace-nowrap') ? 'whitespace-normal' : ''}
+        ${!className.includes('break-words') && !className.includes('whitespace-nowrap') ? 'break-words' : ''}
+        ${className}
       `}
     >
       {/* Shine effect on hover */}
-      <div className="absolute inset-0 translate-x-full group-hover:translate-x-0 transition-transform duration-500 bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
+      <div className="absolute inset-0 translate-x-full group-hover:translate-x-0 transition-transform duration-500 bg-gradient-to-r from-transparent via-white/20 to-transparent rounded-lg"></div>
       
       {/* Content */}
-      <span className="relative z-10 flex items-center space-x-2">
-        {Icon && <Icon className="w-5 h-5" />}
-        <span>{children}</span>
+      <span className="relative z-10 flex items-center justify-center gap-1.5 sm:gap-2 text-center">
+        {Icon && <Icon className={`${iconSizes[size]} flex-shrink-0`} />}
+        <span className="leading-tight inline-block">{children}</span>
       </span>
     </button>
   );

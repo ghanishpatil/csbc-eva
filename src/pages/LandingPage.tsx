@@ -23,7 +23,7 @@ export const LandingPage: React.FC = () => {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_0_0,rgba(34,211,238,0.15),transparent_55%),radial-gradient(circle_at_100%_100%,rgba(59,130,246,0.2),transparent_55%)]" />
       </div>
 
-      <section className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-10">
+      <section className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-8 sm:space-y-10">
         {/* HERO */}
         <motion.div
           className="relative"
@@ -51,13 +51,14 @@ export const LandingPage: React.FC = () => {
               {/* Left: copy + actions */}
               <div className="flex flex-col gap-6">
                 <motion.div
-                  className="inline-flex items-center gap-3 px-4 py-2 rounded-full border border-cyber-neon-green/40 bg-cyber-neon-green/5 w-fit"
+                  className="inline-flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border border-cyber-neon-green/40 bg-cyber-neon-green/5 w-fit"
                   variants={fadeInUp}
                   transition={{ duration: 0.5, delay: 0.1 }}
                 >
-                  <Activity className="w-4 h-4 text-cyber-neon-green animate-pulse" />
-                  <span className="text-xs font-mono text-cyber-neon-green/90 tracking-wide">
-                    SYSTEM ONLINE · REAL-TIME EVENT ENGINE
+                  <Activity className="w-3 h-3 sm:w-4 sm:h-4 text-cyber-neon-green animate-pulse flex-shrink-0" />
+                  <span className="text-[10px] sm:text-xs font-mono text-cyber-neon-green/90 tracking-wide">
+                    <span className="hidden sm:inline">SYSTEM ONLINE · REAL-TIME EVENT ENGINE</span>
+                    <span className="sm:hidden">SYSTEM ONLINE</span>
                   </span>
                 </motion.div>
 
@@ -83,15 +84,31 @@ export const LandingPage: React.FC = () => {
                 </motion.p>
 
                 <motion.div
-                  className="flex flex-nowrap items-center gap-4"
+                  className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4"
                   variants={fadeInUp}
                   transition={{ duration: 0.6, delay: 0.4 }}
                 >
-                  <NeonButton color="blue" icon={Terminal} onClick={() => navigate('/login')} className="whitespace-nowrap">
-                    Access Mission Terminal
+                  <NeonButton 
+                    color="blue" 
+                    icon={Terminal} 
+                    onClick={() => navigate('/login')} 
+                    className="w-full sm:w-auto sm:min-w-[200px] md:min-w-[240px]" 
+                    size="md"
+                  >
+                    <span className="hidden lg:inline">Access Mission Terminal</span>
+                    <span className="hidden sm:inline lg:hidden">Mission Terminal</span>
+                    <span className="sm:hidden">Terminal</span>
                   </NeonButton>
-                  <NeonButton color="green" icon={Trophy} onClick={() => navigate('/leaderboard')} className="whitespace-nowrap">
-                    Monitor Leaderboard
+                  <NeonButton 
+                    color="green" 
+                    icon={Trophy} 
+                    onClick={() => navigate('/leaderboard')} 
+                    className="w-full sm:w-auto sm:min-w-[200px] md:min-w-[240px]" 
+                    size="md"
+                  >
+                    <span className="hidden lg:inline">Monitor Leaderboard</span>
+                    <span className="hidden sm:inline lg:hidden">Leaderboard</span>
+                    <span className="sm:hidden">Rankings</span>
                   </NeonButton>
                 </motion.div>
               </div>
@@ -121,7 +138,7 @@ export const LandingPage: React.FC = () => {
                   animate={{ opacity: [0.18, 0.35, 0.18] }}
                   transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
                 />
-                <div className="relative w-56 h-56 sm:w-60 sm:h-64 flex items-center justify-center">
+                <div className="relative w-48 h-48 xs:w-56 xs:h-56 sm:w-60 sm:h-64 flex items-center justify-center mx-auto lg:mx-0">
                   <motion.img
                     src={csbcLogo}
                     alt="CSBC Cybersecurity Club"
@@ -153,7 +170,7 @@ export const LandingPage: React.FC = () => {
               title="LIVE SYSTEM TELEMETRY"
               subtitle="High-level view of the event engine while a hunt is running"
             />
-            <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="mt-4 grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
               <StatCard icon={Target} label="Active Missions" value="12" color="purple" />
               <StatCard icon={Users} label="Deployed Teams" value="40+" color="blue" />
               <StatCard icon={Activity} label="Live Submissions" value="1K+" color="green" />
@@ -181,7 +198,7 @@ export const LandingPage: React.FC = () => {
               subtitle="How Mission Exploit runs your on-ground cybersecurity event"
             />
             {/* Three core pillars */}
-            <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
               <div className="bg-cyber-bg-darker border border-cyber-border rounded-xl p-5">
                 <div className="text-xs font-mono text-cyber-neon-blue mb-2">01 // FIELD MOVEMENT</div>
                 <h3 className="text-cyber-text-primary font-semibold mb-2">Location-based missions</h3>
@@ -213,8 +230,8 @@ export const LandingPage: React.FC = () => {
               <div className="text-xs font-mono text-cyber-text-secondary mb-3 tracking-[0.22em] uppercase">
                 Mission pipeline
               </div>
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <div className="flex-1 flex flex-wrap gap-3">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 sm:gap-6">
+                <div className="flex-1 flex flex-wrap gap-2 sm:gap-3">
                   {[
                     'Briefing',
                     'Deployment',
@@ -256,7 +273,7 @@ export const LandingPage: React.FC = () => {
               title="CHEAT-RESISTANT BY DESIGN"
               subtitle="Why teams cannot bypass locations, flags, or scoring rules"
             />
-            <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
               <div className="bg-cyber-bg-darker border border-cyber-border rounded-xl p-5 space-y-2">
                 <div className="text-xs font-mono text-cyber-neon-red tracking-[0.22em] uppercase">
                   Backend-locked evaluation
@@ -372,24 +389,24 @@ export const LandingPage: React.FC = () => {
         >
           <CyberCard className="border border-cyber-neon-blue/40 bg-cyber-bg-darker/90">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-              <div>
+              <div className="flex-1">
                 <div className="flex items-center gap-2 mb-2">
-                  <CheckCircle2 className="w-5 h-5 text-cyber-neon-blue" />
-                  <span className="text-xs font-mono text-cyber-neon-blue/80 tracking-[0.2em] uppercase">
+                  <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-cyber-neon-blue flex-shrink-0" />
+                  <span className="text-[10px] sm:text-xs font-mono text-cyber-neon-blue/80 tracking-[0.2em] uppercase">
                     Event Ready
                   </span>
                 </div>
-                <h2 className="text-2xl font-cyber font-bold text-cyber-text-primary mb-1">
+                <h2 className="text-xl sm:text-2xl font-cyber font-bold text-cyber-text-primary mb-1">
                   Awaiting Mission Start
                 </h2>
-                <p className="text-sm text-cyber-text-secondary max-w-xl">
+                <p className="text-xs sm:text-sm text-cyber-text-secondary max-w-xl">
                   When the admin flips the switch, timers will arm, QR checkpoints will unlock, and all
                   roles will sync into live operation. Until then, teams can register, explore rules, and
                   prepare their strategy.
                 </p>
               </div>
 
-              <div className="flex flex-col items-center justify-center gap-3 min-w-[220px]">
+              <div className="flex flex-col items-center justify-center gap-3 w-full md:w-auto md:min-w-[220px]">
                 <div className="text-xs font-mono text-cyber-text-secondary uppercase tracking-[0.28em]">
                   T-00:00:00
                 </div>

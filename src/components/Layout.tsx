@@ -1,7 +1,7 @@
 import { ReactNode, useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { LogOut, Shield, Trophy, Users, Terminal, Zap, Activity, Home, QrCode, Target, Radio } from 'lucide-react';
+import { LogOut, Shield, Trophy, Users, Terminal, Zap, Activity, Home, QrCode, Target, Radio, Menu, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface LayoutProps {
@@ -13,6 +13,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Update clock every second
   useEffect(() => {
@@ -63,14 +64,14 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           </div>
 
           <div className="flex justify-between h-16 items-center">
-            <div className="flex items-center space-x-6">
-              <Link to="/" className="flex items-center space-x-3 group">
+            <div className="flex items-center space-x-3 sm:space-x-6">
+              <Link to="/" className="flex items-center space-x-2 sm:space-x-3 group">
                 <div className="relative">
-                  <Shield className="h-10 w-10 text-cyber-neon-blue transition-all group-hover:text-cyber-neon-green" />
-                  <Zap className="h-4 w-4 text-cyber-neon-green absolute -top-1 -right-1 animate-pulse" />
+                  <Shield className="h-8 w-8 sm:h-10 sm:w-10 text-cyber-neon-blue transition-all group-hover:text-cyber-neon-green" />
+                  <Zap className="h-3 w-3 sm:h-4 sm:w-4 text-cyber-neon-green absolute -top-1 -right-1 animate-pulse" />
                 </div>
-                <div>
-                  <div className="text-xl font-cyber font-bold text-cyber-text-primary group-hover:text-cyber-neon-blue transition-colors">
+                <div className="hidden sm:block">
+                  <div className="text-lg sm:text-xl font-cyber font-bold text-cyber-text-primary group-hover:text-cyber-neon-blue transition-colors">
                     MISSION EXPLOIT
                   </div>
                   <div className="text-xs text-cyber-text-secondary tracking-wider">
@@ -174,24 +175,164 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
               </div>
             </div>
 
-            {user && (
-              <div className="flex items-center space-x-4">
-                <div className="text-right">
-                  <div className="font-cyber text-sm text-cyber-text-primary">{user.displayName}</div>
-                  <div className="text-xs font-mono text-cyber-text-secondary uppercase tracking-wider">
-                    [ {user.role} ]
+            <div className="flex items-center space-x-2 sm:space-x-4">
+              {user && (
+                <>
+                  <div className="hidden sm:block text-right">
+                    <div className="font-cyber text-sm text-cyber-text-primary">{user.displayName}</div>
+                    <div className="text-xs font-mono text-cyber-text-secondary uppercase tracking-wider">
+                      [ {user.role} ]
+                    </div>
                   </div>
-                </div>
-                <button
-                  onClick={handleSignOut}
-                  className="flex items-center space-x-2 px-4 py-2 font-cyber text-sm border border-cyber-neon-red/60 text-cyber-neon-red rounded-lg hover:bg-cyber-neon-red/10 transition-all"
-                >
-                  <LogOut className="h-4 w-4" />
-                  <span>EXIT</span>
-                </button>
-              </div>
-            )}
+                  <button
+                    onClick={handleSignOut}
+                    className="hidden md:flex items-center space-x-2 px-4 py-2 font-cyber text-sm border border-cyber-neon-red/60 text-cyber-neon-red rounded-lg hover:bg-cyber-neon-red/10 transition-all"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    <span>EXIT</span>
+                  </button>
+                </>
+              )}
+
+              {/* Mobile Menu Button */}
+              <button
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="md:hidden p-2 text-cyber-text-secondary hover:text-cyber-neon-blue transition-colors"
+                aria-label="Toggle menu"
+              >
+                {mobileMenuOpen ? (
+                  <X className="h-6 w-6" />
+                ) : (
+                  <Menu className="h-6 w-6" />
+                )}
+              </button>
+            </div>
           </div>
+
+          {/* Mobile Menu */}
+          {mobileMenuOpen && (
+            <div className="md:hidden border-t border-cyber-border py-4 space-y-2 animate-in slide-in-from-top">
+              <Link
+                to="/leaderboard"
+                onClick={() => setMobileMenuOpen(false)}
+                className={`flex items-center space-x-2 px-4 py-3 rounded-lg font-cyber text-sm transition-all ${
+                  isActive('/leaderboard')
+                    ? 'bg-cyber-neon-blue/10 text-cyber-neon-blue border border-cyber-neon-blue/40'
+                    : 'text-cyber-text-secondary hover:text-cyber-neon-blue hover:bg-cyber-neon-blue/5 border border-cyber-border/60'
+                }`}
+              >
+                <Trophy className="h-4 w-4" />
+                <span>RANKINGS</span>
+              </Link>
+
+              {isAdmin && (
+                <Link
+                  to="/admin/dashboard"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`flex items-center space-x-2 px-4 py-3 rounded-lg font-cyber text-sm transition-all ${
+                    isActive('/admin/dashboard')
+                      ? 'bg-cyber-neon-red/10 text-cyber-neon-red border border-cyber-neon-red/40'
+                      : 'text-cyber-text-secondary hover:text-cyber-neon-red hover:bg-cyber-neon-red/5 border border-cyber-border/60'
+                  }`}
+                >
+                  <Terminal className="h-4 w-4" />
+                  <span>CONTROL</span>
+                </Link>
+              )}
+
+              {isCaptain && (
+                <Link
+                  to="/captain/levels"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`flex items-center space-x-2 px-4 py-3 rounded-lg font-cyber text-sm transition-all ${
+                    isActive('/captain/levels')
+                      ? 'bg-cyber-neon-purple/10 text-cyber-neon-purple border border-cyber-neon-purple/40'
+                      : 'text-cyber-text-secondary hover:text-cyber-neon-purple hover:bg-cyber-neon-purple/5 border border-cyber-border/60'
+                  }`}
+                >
+                  <Users className="h-4 w-4" />
+                  <span>MISSIONS</span>
+                </Link>
+              )}
+
+              {isPlayer && (
+                <>
+                  <Link
+                    to="/participant/dashboard"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`flex items-center space-x-2 px-4 py-3 rounded-lg font-cyber text-sm transition-all ${
+                      isActive('/participant/dashboard')
+                        ? 'bg-cyber-neon-green/10 text-cyber-neon-green border border-cyber-neon-green/40'
+                        : 'text-cyber-text-secondary hover:text-cyber-neon-green hover:bg-cyber-neon-green/5 border border-cyber-border/60'
+                    }`}
+                  >
+                    <Home className="h-4 w-4" />
+                    <span>DASHBOARD</span>
+                  </Link>
+
+                  <Link
+                    to="/participant/check-in"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`flex items-center space-x-2 px-4 py-3 rounded-lg font-cyber text-sm transition-all ${
+                      isActive('/participant/check-in')
+                        ? 'bg-cyber-neon-blue/10 text-cyber-neon-blue border border-cyber-neon-blue/40'
+                        : 'text-cyber-text-secondary hover:text-cyber-neon-blue hover:bg-cyber-neon-blue/5 border border-cyber-border/60'
+                    }`}
+                  >
+                    <QrCode className="h-4 w-4" />
+                    <span>CHECK-IN</span>
+                  </Link>
+
+                  <Link
+                    to="/participant/mission"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`flex items-center space-x-2 px-4 py-3 rounded-lg font-cyber text-sm transition-all ${
+                      isActive('/participant/mission')
+                        ? 'bg-cyber-neon-yellow/10 text-cyber-neon-yellow border border-cyber-neon-yellow/40'
+                        : 'text-cyber-text-secondary hover:text-cyber-neon-yellow hover:bg-cyber-neon-yellow/5 border border-cyber-border/60'
+                    }`}
+                  >
+                    <Target className="h-4 w-4" />
+                    <span>MISSION</span>
+                  </Link>
+
+                  <Link
+                    to="/participant/team"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`flex items-center space-x-2 px-4 py-3 rounded-lg font-cyber text-sm transition-all ${
+                      isActive('/participant/team')
+                        ? 'bg-cyber-neon-purple/10 text-cyber-neon-purple border border-cyber-neon-purple/40'
+                        : 'text-cyber-text-secondary hover:text-cyber-neon-purple hover:bg-cyber-neon-purple/5 border border-cyber-border/60'
+                    }`}
+                  >
+                    <Users className="h-4 w-4" />
+                    <span>TEAM</span>
+                  </Link>
+                </>
+              )}
+
+              {user && (
+                <div className="pt-2 border-t border-cyber-border space-y-2">
+                  <div className="px-4 py-2">
+                    <div className="font-cyber text-sm text-cyber-text-primary">{user.displayName}</div>
+                    <div className="text-xs font-mono text-cyber-text-secondary uppercase tracking-wider">
+                      [ {user.role} ]
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      handleSignOut();
+                      setMobileMenuOpen(false);
+                    }}
+                    className="w-full flex items-center justify-center space-x-2 px-4 py-3 font-cyber text-sm border border-cyber-neon-red/60 text-cyber-neon-red rounded-lg hover:bg-cyber-neon-red/10 transition-all"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    <span>EXIT</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </nav>
 
