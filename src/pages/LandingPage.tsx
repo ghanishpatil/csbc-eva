@@ -35,21 +35,27 @@ export const LandingPage: React.FC = () => {
           <CyberCard className="relative overflow-hidden border border-cyber-border/80 bg-cyber-bg/90 shadow-[0_0_40px_rgba(15,23,42,0.8)]">
             {/* Horizontal scanner line */}
             <motion.div
-              className="pointer-events-none absolute -top-20 left-0 right-0 h-px bg-gradient-to-r from-transparent via-cyan-400/80 to-transparent"
-              initial={{ y: 0, opacity: 0 }}
-              animate={{ y: '260px', opacity: 1 }}
+              className="pointer-events-none absolute left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-cyan-400/80 to-transparent z-0"
+              style={{
+                boxShadow: '0 0 8px rgba(34, 211, 238, 0.6)',
+              }}
+              initial={{ top: '-2px', opacity: 0 }}
+              animate={{ 
+                top: ['-2px', '100%'],
+                opacity: [0, 0.8, 0.8, 0]
+              }}
               transition={{
-                duration: 3,
+                duration: 4,
                 repeat: Infinity,
                 repeatType: 'loop',
                 ease: 'linear',
-                delay: 0.4,
+                delay: 0.5,
               }}
             />
 
-            <div className="relative z-10 flex flex-col lg:grid lg:grid-cols-[1.5fr_1fr] lg:items-start gap-10 lg:gap-8 lg:max-w-6xl lg:mx-auto">
+            <div className="relative z-10 flex flex-col lg:grid lg:grid-cols-[1.5fr_1fr] lg:items-start gap-8 sm:gap-10 lg:gap-8 lg:max-w-6xl lg:mx-auto p-4 sm:p-6">
               {/* Left: copy + actions */}
-              <div className="flex flex-col gap-6">
+              <div className="flex flex-col gap-4 sm:gap-6">
                 <motion.div
                   className="inline-flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border border-cyber-neon-green/40 bg-cyber-neon-green/5 w-fit"
                   variants={fadeInUp}
