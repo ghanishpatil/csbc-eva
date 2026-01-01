@@ -23,6 +23,9 @@ import {
   pauseEventController,
   getEventStatusController,
   impersonateUser,
+  updateUser,
+  blockUser,
+  deleteUser,
 } from '../controllers/adminController.js';
 import { validateRequest, verifyAdmin } from '../middleware/validateRequest.js';
 import { adminLimiter } from '../middleware/rateLimiter.js';
@@ -208,6 +211,44 @@ router.delete('/announcement/:announcementId', deleteAnnouncement);
  * Generate a custom token to login as another user (captains/players only)
  */
 router.post('/impersonate-user', impersonateUser);
+
+/**
+ * Zod schema for user updates
+ */
+const updateUserSchema = z.object({
+  userId: z.string().min(1, 'User ID is required'),
+  updates: z.object({
+    role: z.enum(['admin', 'captain', 'player']).optional(),
+    displayName: z.string().min(1).max(100).optional(),
+    teamId: z.string().nullable().optional(),
+  }),
+});
+
+/**
+ * Zod schema for blocking users
+ */
+const blockUserSchema = z.object({
+  userId: z.string().min(1, 'User ID is required'),
+  isBlocked: z.boolean(),
+});
+
+/**
+ * POST /api/admin/update-user
+ * Update a user's information (role, displayName, teamId)
+ */
+router.post('/update-user', validateRequest(updateUserSchema), updateUser);
+
+/**
+ * POST /api/admin/block-user
+ * Block or unblock a user
+ */
+router.post('/block-user', validateRequest(blockUserSchema), blockUser);
+
+/**
+ * DELETE /api/admin/user/:userId
+ * Delete a user
+ */
+router.delete('/user/:userId', deleteUser);
 
 export default router;
 

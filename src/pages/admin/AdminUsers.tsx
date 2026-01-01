@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
-import { collection, onSnapshot, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 // import { signInWithCustomToken as firebaseSignInWithCustomToken } from 'firebase/auth'; // Unused
 import { Users, Shield, UserX, Search, Filter, Edit2, Trash2, Ban, CheckCircle, Building, GraduationCap, Phone, Mail, Calendar, Eye, X, LogIn, ExternalLink } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { CyberCard } from '@/components/ui/CyberCard';
 import { PageHeader } from '@/components/ui/PageHeader';
-import { impersonateUser } from '@/api/adminApi';
+import { impersonateUser, updateUser, blockUser, deleteUser } from '@/api/adminApi';
 // import { NeonButton } from '@/components/ui/NeonButton'; // Unused
 
 interface User {
@@ -72,13 +72,15 @@ const AdminUsers = () => {
 
   const handleToggleBlock = async (user: User) => {
     try {
-      await updateDoc(doc(db, 'users', user.id), {
+      await blockUser({
+        userId: user.id,
         isBlocked: !user.isBlocked,
       });
       toast.success(user.isBlocked ? 'User unblocked' : 'User blocked');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error toggling block:', error);
-      toast.error('Failed to update user status');
+      const errorMessage = error.response?.data?.error || 'Failed to update user status';
+      toast.error(errorMessage);
     }
   };
 
@@ -86,11 +88,12 @@ const AdminUsers = () => {
     if (!confirm(`Delete user "${displayName}"? This action cannot be undone!`)) return;
 
     try {
-      await deleteDoc(doc(db, 'users', userId));
+      await deleteUser(userId);
       toast.success('User deleted successfully');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting user:', error);
-      toast.error('Failed to delete user');
+      const errorMessage = error.response?.data?.error || 'Failed to delete user';
+      toast.error(errorMessage);
     }
   };
 
@@ -98,18 +101,22 @@ const AdminUsers = () => {
     if (!selectedUser) return;
 
     try {
-      await updateDoc(doc(db, 'users', selectedUser.id), {
-        displayName: selectedUser.displayName,
-        role: selectedUser.role,
-        teamId: selectedUser.teamId || null,
+      await updateUser({
+        userId: selectedUser.id,
+        updates: {
+          displayName: selectedUser.displayName,
+          role: selectedUser.role,
+          teamId: selectedUser.teamId || null,
+        },
       });
 
       toast.success('User updated successfully');
       setShowEditModal(false);
       setSelectedUser(null);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating user:', error);
-      toast.error('Failed to update user');
+      const errorMessage = error.response?.data?.error || 'Failed to update user';
+      toast.error(errorMessage);
     }
   };
 

@@ -832,3 +832,199 @@ export const impersonateUser = async (req, res) => {
   }
 };
 
+/**
+ * Update a user's information (role, displayName, teamId, etc.)
+ * @route POST /api/admin/update-user
+ */
+export const updateUser = async (req, res) => {
+  try {
+    const { userId, updates } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        error: 'User ID is required',
+      });
+    }
+
+    const db = getFirestore();
+
+    // Check if user exists
+    const userDoc = await db.collection('users').doc(userId).get();
+    if (!userDoc.exists) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found',
+      });
+    }
+
+    const userData = userDoc.data();
+
+    // Prevent admins from modifying other admins (unless it's themselves)
+    if (userData.role === 'admin' && userId !== req.admin.userId) {
+      return res.status(403).json({
+        success: false,
+        error: 'Cannot modify other admin users',
+      });
+    }
+
+    // Build update object (only allow specific fields)
+    const allowedUpdates = {};
+    if (updates.role !== undefined) {
+      allowedUpdates.role = updates.role;
+    }
+    if (updates.displayName !== undefined) {
+      allowedUpdates.displayName = updates.displayName;
+    }
+    if (updates.teamId !== undefined) {
+      allowedUpdates.teamId = updates.teamId || null;
+    }
+
+    // Update user document
+    await db.collection('users').doc(userId).update({
+      ...allowedUpdates,
+      updatedAt: Date.now(),
+    });
+
+    console.log(`[AdminController] User updated - ID: ${userId}, Admin: ${req.admin.userId}`);
+
+    return res.status(200).json({
+      success: true,
+      message: 'User updated successfully',
+    });
+  } catch (error) {
+    console.error('[AdminController] Update user error:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to update user',
+    });
+  }
+};
+
+/**
+ * Block or unblock a user
+ * @route POST /api/admin/block-user
+ */
+export const blockUser = async (req, res) => {
+  try {
+    const { userId, isBlocked } = req.body;
+
+    if (!userId || typeof isBlocked !== 'boolean') {
+      return res.status(400).json({
+        success: false,
+        error: 'User ID and isBlocked (boolean) are required',
+      });
+    }
+
+    const db = getFirestore();
+
+    // Check if user exists
+    const userDoc = await db.collection('users').doc(userId).get();
+    if (!userDoc.exists) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found',
+      });
+    }
+
+    const userData = userDoc.data();
+
+    // Prevent blocking admins
+    if (userData.role === 'admin') {
+      return res.status(403).json({
+        success: false,
+        error: 'Cannot block admin users',
+      });
+    }
+
+    // Prevent blocking yourself
+    if (userId === req.admin.userId) {
+      return res.status(403).json({
+        success: false,
+        error: 'Cannot block yourself',
+      });
+    }
+
+    // Update user document
+    await db.collection('users').doc(userId).update({
+      isBlocked: isBlocked,
+      updatedAt: Date.now(),
+    });
+
+    console.log(`[AdminController] User ${isBlocked ? 'blocked' : 'unblocked'} - ID: ${userId}, Admin: ${req.admin.userId}`);
+
+    return res.status(200).json({
+      success: true,
+      message: `User ${isBlocked ? 'blocked' : 'unblocked'} successfully`,
+    });
+  } catch (error) {
+    console.error('[AdminController] Block user error:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to update user status',
+    });
+  }
+};
+
+/**
+ * Delete a user
+ * @route DELETE /api/admin/user/:userId
+ */
+export const deleteUser = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        error: 'User ID is required',
+      });
+    }
+
+    const db = getFirestore();
+
+    // Check if user exists
+    const userDoc = await db.collection('users').doc(userId).get();
+    if (!userDoc.exists) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found',
+      });
+    }
+
+    const userData = userDoc.data();
+
+    // Prevent deleting admins
+    if (userData.role === 'admin') {
+      return res.status(403).json({
+        success: false,
+        error: 'Cannot delete admin users',
+      });
+    }
+
+    // Prevent deleting yourself
+    if (userId === req.admin.userId) {
+      return res.status(403).json({
+        success: false,
+        error: 'Cannot delete yourself',
+      });
+    }
+
+    // Delete user document
+    await db.collection('users').doc(userId).delete();
+
+    console.log(`[AdminController] User deleted - ID: ${userId}, Admin: ${req.admin.userId}`);
+
+    return res.status(200).json({
+      success: true,
+      message: 'User deleted successfully',
+    });
+  } catch (error) {
+    console.error('[AdminController] Delete user error:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to delete user',
+    });
+  }
+};
+

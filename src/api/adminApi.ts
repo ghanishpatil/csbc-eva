@@ -215,6 +215,48 @@ export const impersonateUser = async (email: string) => {
 };
 
 // ============================================================================
+// USER MANAGEMENT
+// ============================================================================
+
+export interface UpdateUserRequest {
+  userId: string;
+  updates: {
+    role?: 'admin' | 'captain' | 'player';
+    displayName?: string;
+    teamId?: string | null;
+  };
+}
+
+export interface BlockUserRequest {
+  userId: string;
+  isBlocked: boolean;
+}
+
+/**
+ * Update a user's information (role, displayName, teamId)
+ */
+export const updateUser = async (data: UpdateUserRequest) => {
+  const response = await adminApi.post('/api/admin/update-user', data);
+  return response.data;
+};
+
+/**
+ * Block or unblock a user
+ */
+export const blockUser = async (data: BlockUserRequest) => {
+  const response = await adminApi.post('/api/admin/block-user', data);
+  return response.data;
+};
+
+/**
+ * Delete a user
+ */
+export const deleteUser = async (userId: string) => {
+  const response = await adminApi.delete(`/api/admin/user/${userId}`);
+  return response.data;
+};
+
+// ============================================================================
 // HEALTH CHECK
 // ============================================================================
 
