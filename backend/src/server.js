@@ -12,6 +12,8 @@ import submitFlagRoutes from './routes/submitFlag.js';
 import adminRoutes from './routes/admin.js';
 import captainRoutes from './routes/captain.js';
 import participantRoutes from './routes/participant.js';
+import missionRoutes from './routes/mission.js';
+import authRoutes from './routes/auth.js';
 
 // Load environment variables
 dotenv.config();
@@ -104,6 +106,7 @@ app.get('/api', (req, res) => {
       participantLevel: 'GET /api/participant/level/:teamId',
       participantUpdateStatus: 'POST /api/participant/update-status',
       participantRequestHint: 'POST /api/participant/request-hint',
+      missionStart: 'POST /api/mission/start',
       participantCreateTeam: 'POST /api/participant/create-team',
       participantJoinTeam: 'POST /api/participant/join-team',
       participantGetTeam: 'GET /api/participant/team/:teamId',
@@ -129,6 +132,8 @@ app.use('/api', submitFlagRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/captain', captainRoutes);
 app.use('/api/participant', participantRoutes);
+app.use('/api/mission', missionRoutes);
+app.use('/api/auth', authRoutes);
 
 // ============================================================================
 // ERROR HANDLING

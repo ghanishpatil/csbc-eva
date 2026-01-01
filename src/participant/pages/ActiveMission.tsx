@@ -70,10 +70,21 @@ export const ActiveMission = () => {
 
     fetchLevel();
 
-    // Real-time listener for team changes (e.g., hint usage updates)
+    // Real-time listener for team changes - use Firestore data directly
     const unsubscribe = onSnapshot(doc(db, 'teams', teamId), async (snapshot) => {
       if (snapshot.exists()) {
-        // Re-fetch level data when team updates
+        const teamData = snapshot.data();
+        
+        // Calculate timeElapsed from currentLevelStartTime (real-time)
+        // This ensures we always have the latest time from Firestore
+        if (teamData.currentLevelStartTime) {
+          const calculatedTimeElapsed = Math.floor((Date.now() - teamData.currentLevelStartTime) / 1000);
+          setTimeElapsed(calculatedTimeElapsed);
+        } else {
+          setTimeElapsed(0);
+        }
+        
+        // Re-fetch level data when team updates (e.g., hint usage, level completion)
         try {
           const response = await getCurrentLevel(teamId);
           if (response.success && response.level) {
@@ -83,14 +94,18 @@ export const ActiveMission = () => {
           console.error('Error refreshing level:', error);
         }
       }
+    }, (error) => {
+      console.error('Error in team snapshot:', error);
     });
 
     return () => unsubscribe();
   }, [user?.teamId, navigate]);
 
-  // Update timer - ONLY when event is active/running
+  // Update timer display every second when event is running (visual refresh)
+  // Note: The actual timeElapsed is updated via Firestore onSnapshot above
+  // This interval only provides smooth visual updates between snapshot updates
   useEffect(() => {
-    if (!level) return;
+    if (!level || !user?.teamId) return;
 
     // Don't run timer if event is stopped or paused
     const eventStatus = eventConfig?.status || eventConfig?.eventStatus;
@@ -98,12 +113,14 @@ export const ActiveMission = () => {
       return;
     }
 
+    // Visual refresh: increment timer every second
+    // The onSnapshot handler above will sync the correct value from Firestore
     const interval = setInterval(() => {
       setTimeElapsed((prev) => prev + 1);
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [level, eventConfig?.status, eventConfig?.eventStatus, eventConfig?.isActive]);
+  }, [level, eventConfig?.status, eventConfig?.eventStatus, eventConfig?.isActive, user?.teamId]);
 
   const formatTime = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);

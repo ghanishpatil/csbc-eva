@@ -2,15 +2,16 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import { useAuth } from '@/hooks/useAuth';
-import { getTeamStatus } from '@/api/participantApi';
+import { getTeamStatus, startMission } from '@/api/participantApi';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/config/firebase';
-import { Shield, Target, Clock, MapPin, CheckCircle2, AlertCircle, ArrowRight, QrCode, Pause, StopCircle } from 'lucide-react';
+import { Shield, Target, Clock, MapPin, CheckCircle2, AlertCircle, ArrowRight, QrCode, Pause, StopCircle, Play } from 'lucide-react';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { StatCard } from '@/components/ui/StatCard';
 import { CyberCard } from '@/components/ui/CyberCard';
 import { SectionTitle } from '@/components/ui/SectionTitle';
 import { NeonButton } from '@/components/ui/NeonButton';
+import { QRScanner } from '@/components/QRScanner';
 import toast from 'react-hot-toast';
 import type { TeamStatus } from '@/api/participantApi';
 import type { EventConfig } from '@/types';
@@ -22,6 +23,15 @@ export const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [timeElapsed, setTimeElapsed] = useState(0);
   const [eventConfig, setEventConfig] = useState<EventConfig | null>(null);
+  const [showQRScanner, setShowQRScanner] = useState(false);
+  const [missionStarted, setMissionStarted] = useState(false);
+  const [missionData, setMissionData] = useState<{
+    level: number;
+    description: string;
+    timeLimit: number;
+    startTime: number;
+  } | null>(null);
+  const [missionTimer, setMissionTimer] = useState(0);
 
   // Redirect non-players
   useEffect(() => {
@@ -69,42 +79,73 @@ export const Dashboard = () => {
 
     fetchStatus();
 
-    // Subscribe to real-time team updates
-    const unsubscribe = onSnapshot(doc(db, 'teams', user.teamId), async () => {
-      try {
-        if (!user.teamId) return;
-        const response = await getTeamStatus(user.teamId);
-        if (response.success) {
-          setTeamStatus(response.team);
-          setTimeElapsed(response.team.timeElapsed);
+    // Subscribe to real-time team updates - use Firestore data directly (REAL-TIME)
+    const unsubscribe = onSnapshot(doc(db, 'teams', user.teamId), (snapshot) => {
+      if (snapshot.exists()) {
+        const teamData = snapshot.data();
+        
+        // Calculate timeElapsed from currentLevelStartTime (real-time calculation)
+        // This ensures we always have the latest time from Firestore
+        let calculatedTimeElapsed = 0;
+        if (teamData.currentLevelStartTime) {
+          calculatedTimeElapsed = Math.floor((Date.now() - teamData.currentLevelStartTime) / 1000);
         }
-      } catch (error) {
-        console.error('Error updating team status:', error);
+        
+        // Get group name from team data (groupName might not be in team doc, use from initial fetch)
+        const groupName = teamStatus?.groupName || teamData.groupName || '';
+        
+        // Update team status with real-time Firestore data
+        setTeamStatus({
+          id: snapshot.id,
+          name: teamData.name || '',
+          score: teamData.score || 0,
+          levelsCompleted: teamData.levelsCompleted || 0,
+          currentLevel: teamData.currentLevel || 1,
+          status: teamData.status || 'waiting',
+          groupId: teamData.groupId || '',
+          groupName: groupName,
+          timeElapsed: calculatedTimeElapsed,
+          currentLevelStartTime: teamData.currentLevelStartTime || null,
+          isCheckedIn: teamData.isCheckedIn || false,
+        });
+        
+        // Update timeElapsed state (real-time from Firestore)
+        setTimeElapsed(calculatedTimeElapsed);
       }
+    }, (error) => {
+      console.error('Error in team snapshot:', error);
     });
 
     return () => unsubscribe();
   }, [user?.teamId]);
 
-  // Update timer every second - ONLY when event is active/running
+  // Update timer display every second when event is running (visual refresh)
+  // Calculation uses real-time Firestore data as source of truth
   useEffect(() => {
-    if (!teamStatus?.currentLevelStartTime) return;
-    
-    // Don't run timer if event is stopped or paused
+    // Get event status
     const eventStatus = eventConfig?.status || eventConfig?.eventStatus;
-    if (eventStatus === 'stopped' || eventStatus === 'paused' || eventConfig?.isActive === false) {
+    const isEventRunning = (eventStatus === 'running' || eventStatus === 'active') && eventConfig?.isActive === true;
+    
+    // Only update timer visually if event is running
+    if (!isEventRunning) {
       return;
     }
 
+    // Update timer display every second (visual refresh, calculation from Firestore data)
     const interval = setInterval(() => {
-      if (teamStatus.currentLevelStartTime) {
-        const elapsed = Math.floor((Date.now() - teamStatus.currentLevelStartTime) / 1000);
-        setTimeElapsed(elapsed);
+      // Calculate from event start time (total event elapsed time)
+      if (eventConfig?.startTime) {
+        const calculatedTimeElapsed = Math.floor((Date.now() - eventConfig.startTime) / 1000);
+        setTimeElapsed(calculatedTimeElapsed);
+      } else if (teamStatus?.currentLevelStartTime) {
+        // Fallback: use level start time if event start time not available
+        const calculatedTimeElapsed = Math.floor((Date.now() - teamStatus.currentLevelStartTime) / 1000);
+        setTimeElapsed(calculatedTimeElapsed);
       }
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [teamStatus?.currentLevelStartTime, eventConfig?.status, eventConfig?.eventStatus, eventConfig?.isActive]);
+  }, [teamStatus?.currentLevelStartTime, eventConfig?.status, eventConfig?.eventStatus, eventConfig?.isActive, eventConfig?.startTime]);
 
   const formatTime = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
@@ -115,6 +156,76 @@ export const Dashboard = () => {
     }
     return `${minutes}:${secs.toString().padStart(2, '0')}`;
   };
+
+  // Handle QR scan success
+  const handleQRScanSuccess = async (qrData: string) => {
+    if (!user?.teamId) {
+      toast.error('No team assigned');
+      return;
+    }
+
+    try {
+      setShowQRScanner(false);
+      toast.loading('Starting mission...', { id: 'mission-start' });
+
+      const response = await startMission({ qrData });
+
+      if (response.success) {
+        toast.success(`✅ ${response.message}`, { id: 'mission-start' });
+        
+        setMissionStarted(true);
+        setMissionData({
+          level: response.level,
+          description: response.description,
+          timeLimit: response.timeLimit,
+          startTime: response.startTime,
+        });
+        setMissionTimer(0);
+
+        // Refresh team status
+        if (user.teamId) {
+          const statusResponse = await getTeamStatus(user.teamId);
+          if (statusResponse.success) {
+            setTeamStatus(statusResponse.team);
+          }
+        }
+
+        // Navigate to mission page after a short delay
+        setTimeout(() => {
+          navigate('/participant/mission');
+        }, 2000);
+      } else {
+        toast.error(response.error || 'Failed to start mission', { id: 'mission-start' });
+      }
+    } catch (error: any) {
+      console.error('Mission start error:', error);
+      const errorMessage = error.response?.data?.error || error.message || 'Failed to start mission';
+      toast.error(`❌ ${errorMessage}`, { id: 'mission-start' });
+    }
+  };
+
+  // Update mission timer
+  useEffect(() => {
+    if (!missionStarted || !missionData) return;
+
+    const eventStatus = eventConfig?.status || eventConfig?.eventStatus;
+    if (eventStatus === 'stopped' || eventStatus === 'paused' || eventConfig?.isActive === false) {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      if (!missionData) return;
+      const elapsed = Math.floor((Date.now() - missionData.startTime) / 1000);
+      setMissionTimer(elapsed);
+
+      // Check if time limit exceeded
+      if (missionData.timeLimit > 0 && elapsed >= missionData.timeLimit) {
+        toast.error('⏰ Time limit exceeded!', { duration: 5000 });
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [missionStarted, missionData, eventConfig]);
 
   const getStatusBadge = (status: string) => {
     const badges = {
@@ -155,9 +266,10 @@ export const Dashboard = () => {
 
   // Determine event status
   const eventStatus = eventConfig?.status || eventConfig?.eventStatus;
+  const isEventRunning = (eventStatus === 'running' || eventStatus === 'active') && eventConfig?.isActive === true;
   const isEventPaused = eventStatus === 'paused';
   const isEventStopped = eventStatus === 'stopped' || eventConfig?.isActive === false;
-  // const isEventRunning = eventStatus === 'running' || eventStatus === 'active' || (eventConfig?.isActive === true && !isEventPaused && !isEventStopped); // Unused
+  const isEventNotStarted = !isEventRunning && !isEventPaused && !isEventStopped;
 
   return (
     <Layout>
@@ -225,8 +337,24 @@ export const Dashboard = () => {
           <StatCard
             icon={Clock}
             label="Time Elapsed"
-            value={isEventStopped ? 'STOPPED' : isEventPaused ? `${formatTime(timeElapsed)} (PAUSED)` : formatTime(timeElapsed)}
-            color={isEventStopped ? 'red' : isEventPaused ? 'yellow' : 'blue'}
+            value={
+              isEventNotStarted 
+                ? 'NOT STARTED' 
+                : isEventStopped 
+                  ? 'STOPPED' 
+                  : isEventPaused 
+                    ? `${formatTime(timeElapsed)} (PAUSED)` 
+                    : formatTime(timeElapsed)
+            }
+            color={
+              isEventNotStarted 
+                ? 'yellow' 
+                : isEventStopped 
+                  ? 'red' 
+                  : isEventPaused 
+                    ? 'yellow' 
+                    : 'blue'
+            }
           />
         </div>
 
@@ -273,12 +401,72 @@ export const Dashboard = () => {
           </div>
         </CyberCard>
 
+        {/* QR Scanner Section */}
+        {showQRScanner && (
+          <QRScanner
+            onScanSuccess={handleQRScanSuccess}
+            onClose={() => setShowQRScanner(false)}
+            disabled={loading || !user?.teamId}
+          />
+        )}
+
+        {/* Mission Started View */}
+        {missionStarted && missionData && !showQRScanner && (
+          <CyberCard>
+            <SectionTitle icon={Play} title="MISSION ACTIVE" />
+            <div className="space-y-4">
+              <div className="bg-cyber-bg-darker border border-cyber-border rounded-xl p-6">
+                <div className="text-cyber-text-secondary text-sm mb-2">CURRENT CHALLENGE</div>
+                <div className="text-2xl font-bold text-cyber-text-primary mb-2">
+                  Level {missionData.level}
+                </div>
+                <div className="text-cyber-text-secondary mb-4">
+                  {missionData.description}
+                </div>
+                {missionData.timeLimit > 0 && (
+                  <div className="flex items-center space-x-2">
+                    <Clock className="h-5 w-5 text-cyber-neon-blue" />
+                    <span className="text-cyber-text-primary font-medium">
+                      Time Limit: {formatTime(missionData.timeLimit)}
+                    </span>
+                    <span className="text-cyber-text-secondary ml-4">
+                      Elapsed: {formatTime(missionTimer)}
+                    </span>
+                    {missionData.timeLimit > 0 && missionTimer >= missionData.timeLimit && (
+                      <span className="text-cyber-neon-red ml-4 font-bold">⏰ TIME UP</span>
+                    )}
+                  </div>
+                )}
+              </div>
+              <NeonButton
+                onClick={() => navigate('/participant/mission')}
+                className="w-full"
+                color="green"
+                icon={Target}
+              >
+                View Full Mission Details
+              </NeonButton>
+            </div>
+          </CyberCard>
+        )}
+
         {/* Quick Actions */}
         <CyberCard>
           <SectionTitle icon={CheckCircle2} title="QUICK ACTIONS" />
           
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {!teamStatus?.isCheckedIn && teamStatus?.currentLevel && (
+            {!showQRScanner && !missionStarted && (
+              <NeonButton
+                onClick={() => setShowQRScanner(true)}
+                className="w-full"
+                color="blue"
+                icon={QrCode}
+              >
+                Scan QR to Start Mission
+              </NeonButton>
+            )}
+
+            {!teamStatus?.isCheckedIn && teamStatus?.currentLevel && !showQRScanner && (
               <NeonButton
                 onClick={() => navigate('/participant/check-in')}
                 className="w-full"
@@ -289,7 +477,7 @@ export const Dashboard = () => {
               </NeonButton>
             )}
 
-            {teamStatus?.isCheckedIn && (
+            {teamStatus?.isCheckedIn && !showQRScanner && (
               <NeonButton
                 onClick={() => navigate('/participant/mission')}
                 className="w-full"

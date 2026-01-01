@@ -5,6 +5,263 @@ import { calculateHintPenalty } from '../services/hintService.js';
 // Event status check removed - no longer required
 
 /**
+ * Start a mission challenge by scanning QR code
+ * @route POST /api/mission/start
+ * SECURITY: Backend validates QR, group, sequential order, and starts timer
+ */
+export const startMission = async (req, res) => {
+  try {
+    const { qrData } = req.body;
+
+    if (!qrData || typeof qrData !== 'string' || !qrData.trim()) {
+      return res.status(400).json({
+        success: false,
+        error: 'QR code data is required',
+      });
+    }
+
+    const db = getFirestore();
+    const userId = req.participant.userId;
+    const userData = req.participant.userData;
+
+    // Get teamId from user document
+    if (!userData.teamId) {
+      return res.status(400).json({
+        success: false,
+        error: 'User is not assigned to a team',
+      });
+    }
+
+    const teamId = userData.teamId;
+
+    // Get team data
+    const team = await getTeam(teamId);
+    if (!team) {
+      return res.status(404).json({
+        success: false,
+        error: 'Team not found',
+      });
+    }
+
+    // CRITICAL: Verify team has a groupId
+    if (!team.groupId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Team is not assigned to a group',
+      });
+    }
+
+    const qrCodeValue = qrData.trim();
+    let levelDoc = null;
+    let levelId = null;
+    let levelData = null;
+
+    // PRIORITY 1: Search by qrCodeId (the actual QR code identifier)
+    const levelsByQrSnapshot = await db
+      .collection('levels')
+      .where('qrCodeId', '==', qrCodeValue)
+      .get();
+
+    if (!levelsByQrSnapshot.empty) {
+      // Filter by team's groupId
+      const groupLevel = levelsByQrSnapshot.docs.find(
+        (doc) => doc.data().groupId === team.groupId
+      );
+      
+      if (groupLevel) {
+        levelDoc = groupLevel;
+        levelId = groupLevel.id;
+        levelData = groupLevel.data();
+      } else {
+        // QR code doesn't belong to team's group
+        return res.status(403).json({
+          success: false,
+          error: 'This QR code does not belong to your group. Please scan the correct QR code for your group.',
+        });
+      }
+    }
+
+    // PRIORITY 2: If QR code is just a number, find by level number within group
+    if (!levelDoc && /^\d+$/.test(qrCodeValue)) {
+      const levelNumber = parseInt(qrCodeValue);
+      const levelsByNumberSnapshot = await db
+        .collection('levels')
+        .where('groupId', '==', team.groupId)
+        .where('number', '==', levelNumber)
+        .limit(1)
+        .get();
+
+      if (!levelsByNumberSnapshot.empty) {
+        levelDoc = levelsByNumberSnapshot.docs[0];
+        levelId = levelDoc.id;
+        levelData = levelDoc.data();
+      }
+    }
+
+    // PRIORITY 3: Check if it's a level_X format
+    if (!levelDoc && qrCodeValue.startsWith('level_')) {
+      const levelNumber = parseInt(qrCodeValue.replace('level_', ''));
+      if (!isNaN(levelNumber)) {
+        const levelsByNumberSnapshot = await db
+          .collection('levels')
+          .where('groupId', '==', team.groupId)
+          .where('number', '==', levelNumber)
+          .limit(1)
+          .get();
+
+        if (!levelsByNumberSnapshot.empty) {
+          levelDoc = levelsByNumberSnapshot.docs[0];
+          levelId = levelDoc.id;
+          levelData = levelDoc.data();
+        }
+      }
+    }
+
+    // PRIORITY 4: Try using QR code as direct levelId (document ID)
+    if (!levelDoc) {
+      try {
+        const levelDocRef = db.collection('levels').doc(qrCodeValue);
+        const levelDocSnap = await levelDocRef.get();
+        if (levelDocSnap.exists) {
+          const data = levelDocSnap.data();
+          // Verify it belongs to team's group
+          if (data.groupId === team.groupId) {
+            levelDoc = levelDocSnap;
+            levelId = qrCodeValue;
+            levelData = data;
+          }
+        }
+      } catch (error) {
+        // Invalid document ID format, continue to error
+      }
+    }
+
+    // If no level found
+    if (!levelDoc || !levelData) {
+      return res.status(404).json({
+        success: false,
+        error: 'Level not found. Please check the QR code.',
+      });
+    }
+
+    // CRITICAL: Verify level belongs to team's group (GROUP-SCOPED MISSION)
+    if (levelData.groupId && levelData.groupId !== team.groupId) {
+      return res.status(403).json({
+        success: false,
+        error: 'This level does not belong to your group. You cannot access this mission.',
+      });
+    }
+
+    // CRITICAL: Verify QR code matches this level's qrCodeId (PHYSICAL PRESENCE PROOF)
+    if (levelData.qrCodeId && qrCodeValue !== levelData.qrCodeId) {
+      return res.status(403).json({
+        success: false,
+        error: 'Invalid QR code for this level. Please scan the correct QR code at the physical location.',
+      });
+    }
+
+    // CRITICAL: Check sequential order (no skipping levels)
+    const currentLevelNumber = team.currentLevel || 1;
+    if (levelData.number > currentLevelNumber) {
+      return res.status(403).json({
+        success: false,
+        error: `This level is not unlocked for your team. Complete Level ${currentLevelNumber} first.`,
+      });
+    }
+
+    // Check if level is already completed
+    if (team.levelsCompleted >= levelData.number) {
+      return res.status(400).json({
+        success: false,
+        error: 'This level has already been completed.',
+      });
+    }
+
+    // Check if there's an active session for this level
+    const sessionRef = db.collection('mission_sessions').doc(`${teamId}_${levelId}`);
+    const sessionDoc = await sessionRef.get();
+
+    if (sessionDoc.exists) {
+      const sessionData = sessionDoc.data();
+      if (sessionData.status === 'active') {
+        // Return existing session info
+        return res.status(200).json({
+          success: true,
+          message: 'Mission already started',
+          level: levelData.number,
+          description: levelData.description || levelData.title,
+          timeLimit: levelData.timeLimit || 0,
+          levelId: levelId,
+          startTime: sessionData.startTime,
+        });
+      }
+    }
+
+    // FIX: Enforce state machine - Update team status to "At Location" (MOVING → at_location)
+    // Only allow if current state is 'waiting' or 'moving'
+    const currentStatus = team.status || 'waiting';
+    if (!['waiting', 'moving'].includes(currentStatus)) {
+      return res.status(403).json({
+        success: false,
+        error: `Invalid state transition: Cannot start mission from '${currentStatus}' state. You must be in 'waiting' or 'moving' state.`,
+      });
+    }
+
+    const startTime = Date.now();
+
+    // Create/update session record
+    await sessionRef.set({
+      teamId,
+      levelId,
+      level: levelData.number,
+      startTime,
+      status: 'active',
+      createdAt: startTime,
+      updatedAt: startTime,
+    });
+
+    // Update team status and start timer
+    await db.collection('teams').doc(teamId).update({
+      currentLevel: levelData.number,
+      status: 'at_location', // State transition: MOVING → at_location
+      lastCheckInAt: startTime,
+      currentLevelStartTime: startTime,
+      updatedAt: startTime,
+    });
+
+    // Record check-in
+    const checkInRef = db.collection('check_ins').doc(`${teamId}_${levelId}`);
+    const checkInDoc = await checkInRef.get();
+    if (!checkInDoc.exists) {
+      await checkInRef.set({
+        teamId,
+        levelId,
+        levelNumber: levelData.number,
+        checkedInAt: startTime,
+      });
+    }
+
+    console.log(`[ParticipantController] Mission started - Team: ${teamId}, Level: ${levelData.number}`);
+
+    return res.status(200).json({
+      success: true,
+      message: `Mission Level ${levelData.number} started`,
+      level: levelData.number,
+      description: levelData.description || levelData.title,
+      timeLimit: levelData.timeLimit || 0,
+      levelId: levelId,
+      startTime: startTime,
+    });
+  } catch (error) {
+    console.error('[ParticipantController] Start mission error:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to start mission',
+    });
+  }
+};
+
+/**
  * Verify QR check-in for a team at a specific level
  * @route POST /api/participant/check-in
  */

@@ -301,3 +301,26 @@ export const leaveTeam = async (data: LeaveTeamRequest): Promise<LeaveTeamRespon
   return response.data;
 };
 
+/**
+ * Start a mission by scanning QR code
+ */
+export interface StartMissionRequest {
+  qrData: string;
+}
+
+export interface StartMissionResponse {
+  success: boolean;
+  message: string;
+  level: number;
+  description: string;
+  timeLimit: number;
+  levelId: string;
+  startTime: number;
+  error?: string;
+}
+
+export const startMission = async (data: StartMissionRequest): Promise<StartMissionResponse> => {
+  const response = await participantApi.post('/api/mission/start', data);
+  return response.data;
+};
+

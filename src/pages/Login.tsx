@@ -59,16 +59,33 @@ export const Login: React.FC = () => {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
 
-        await firestoreAPI.createUser(user.uid, {
-          email: user.email || email,
-          displayName: displayName.trim(),
-          phone: phone.trim(),
-          institute: institute.trim(),
-          branch: branch.trim(),
-          year: year,
-          role: 'player',
-          createdAt: Date.now(),
-        });
+        // Get ID token for backend verification
+        const idToken = await user.getIdToken();
+
+        // Register user via backend API (creates Firestore document using Admin SDK)
+        try {
+          const { registerUser } = await import('../api/authApi');
+          await registerUser({
+            idToken,
+            userData: {
+              email: user.email || email,
+              displayName: displayName.trim(),
+              phone: phone.trim(),
+              institute: institute.trim(),
+              branch: branch.trim(),
+              year: year ? parseInt(year, 10) : null,
+              role: 'player',
+            },
+          });
+        } catch (error: any) {
+          console.error('Registration error:', error);
+          // If backend registration fails, delete the auth user to keep things clean
+          await user.delete();
+          const errorMessage = error.response?.data?.error || error.message || 'Failed to register user';
+          toast.error(`[ ACCESS DENIED ] ${errorMessage}`);
+          setLoading(false);
+          return;
+        }
 
         toast.dismiss();
         toast.success('[ ACCESS GRANTED ]');
