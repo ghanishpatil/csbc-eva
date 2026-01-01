@@ -2,7 +2,7 @@ import axios from 'axios';
 import { API_BASE_URL } from '@/config/api';
 
 const authApi = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: API_BASE_URL || undefined, // undefined is valid for axios.create, will fail at request time
   headers: {
     'Content-Type': 'application/json',
   },

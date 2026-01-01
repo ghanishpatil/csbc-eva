@@ -4,7 +4,7 @@ import { API_BASE_URL } from '@/config/api';
 
 // Create axios instance with auth interceptor
 export const captainApi = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: API_BASE_URL || undefined, // undefined is valid for axios.create, will fail at request time
   timeout: 30000,
 });
 
