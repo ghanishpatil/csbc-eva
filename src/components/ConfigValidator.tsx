@@ -42,6 +42,23 @@ export const ConfigValidator: React.FC<ConfigValidatorProps> = ({ children }) =>
 
     if (missingFirebaseVars.length > 0) {
       errors.push(`Missing Firebase environment variables: ${missingFirebaseVars.join(', ')}`);
+    } else {
+      // All vars are present - verify Firebase config format
+      const apiKey = import.meta.env.VITE_FIREBASE_API_KEY;
+      const authDomain = import.meta.env.VITE_FIREBASE_AUTH_DOMAIN;
+      
+      // Basic format validation to catch common mistakes
+      if (apiKey && !apiKey.startsWith('AIza')) {
+        errors.push('VITE_FIREBASE_API_KEY appears to be invalid (Firebase API keys typically start with "AIza")');
+      }
+      
+      if (authDomain && !authDomain.includes('.firebaseapp.com') && !authDomain.includes('.web.app')) {
+        errors.push('VITE_FIREBASE_AUTH_DOMAIN format may be incorrect (should be: project-id.firebaseapp.com or project-id.web.app)');
+      }
+      
+      // Note: If all vars are present but Firebase still fails to initialize,
+      // the ErrorBoundary will catch the error when components try to use Firebase
+      // and display a helpful error message
     }
 
     if (errors.length > 0) {

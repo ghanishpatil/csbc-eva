@@ -62,14 +62,83 @@ if (isFirebaseConfigValid()) {
   console.warn('[Firebase] Configuration is invalid. Missing required environment variables.');
 }
 
-// Export services
-// If Firebase is not initialized (config invalid), these will be null
-// ConfigValidator will prevent app from loading if config is invalid,
-// so these will only be accessed when Firebase is properly initialized
-// Using type assertions to satisfy TypeScript - runtime checks ensure safety
-export const auth = firebaseAuth as Auth;
-export const db = firebaseDb as Firestore;
-export const functions = firebaseFunctions as Functions;
-export const storage = firebaseStorage as FirebaseStorage;
-export default firebaseApp as FirebaseApp;
+/**
+ * Get Firebase Auth instance
+ * @throws Error if Firebase is not initialized
+ */
+const getAuthInstance = (): Auth => {
+  if (!firebaseAuth) {
+    throw new Error(
+      'Firebase Auth is not initialized. Please check your environment variables:\n' +
+      '- VITE_FIREBASE_API_KEY\n' +
+      '- VITE_FIREBASE_AUTH_DOMAIN\n' +
+      '- VITE_FIREBASE_PROJECT_ID\n' +
+      '- VITE_FIREBASE_STORAGE_BUCKET\n' +
+      '- VITE_FIREBASE_MESSAGING_SENDER_ID\n' +
+      '- VITE_FIREBASE_APP_ID'
+    );
+  }
+  return firebaseAuth;
+};
+
+/**
+ * Get Firestore instance
+ * @throws Error if Firebase is not initialized
+ */
+const getDbInstance = (): Firestore => {
+  if (!firebaseDb) {
+    throw new Error(
+      'Firebase Firestore is not initialized. Please check your environment variables.'
+    );
+  }
+  return firebaseDb;
+};
+
+/**
+ * Get Functions instance
+ * @throws Error if Firebase is not initialized
+ */
+const getFunctionsInstance = (): Functions => {
+  if (!firebaseFunctions) {
+    throw new Error(
+      'Firebase Functions is not initialized. Please check your environment variables.'
+    );
+  }
+  return firebaseFunctions;
+};
+
+/**
+ * Get Storage instance
+ * @throws Error if Firebase is not initialized
+ */
+const getStorageInstance = (): FirebaseStorage => {
+  if (!firebaseStorage) {
+    throw new Error(
+      'Firebase Storage is not initialized. Please check your environment variables.'
+    );
+  }
+  return firebaseStorage;
+};
+
+/**
+ * Get Firebase App instance
+ * @throws Error if Firebase is not initialized
+ */
+const getAppInstance = (): FirebaseApp => {
+  if (!firebaseApp) {
+    throw new Error(
+      'Firebase App is not initialized. Please check your environment variables.'
+    );
+  }
+  return firebaseApp;
+};
+
+// Export getters that validate initialization
+// These will throw clear errors if Firebase isn't initialized,
+// which ErrorBoundary will catch and display
+export const auth = getAuthInstance();
+export const db = getDbInstance();
+export const functions = getFunctionsInstance();
+export const storage = getStorageInstance();
+export default getAppInstance();
 
