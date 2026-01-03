@@ -4,10 +4,19 @@
  */
 
 // Get backend URL from environment variable
-// IMPORTANT: Set VITE_BACKEND_URL in your .env file or Vercel environment variables
+// IMPORTANT: Set VITE_BACKEND_URL in your .env file
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
-// Export the backend URL - validation happens at runtime, not module load time
+// Validate that backend URL is set
+if (!BACKEND_URL) {
+  console.error(
+    '❌ VITE_BACKEND_URL is not set! Please set it in your .env file.\n' +
+    'Example: VITE_BACKEND_URL=http://localhost:5000'
+  );
+  throw new Error('Backend URL not configured. Check your .env file.');
+}
+
+// Export the single constant URL
 export const API_BASE_URL = BACKEND_URL;
 
 // Admin token for admin API calls

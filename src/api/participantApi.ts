@@ -2,10 +2,9 @@ import axios from 'axios';
 import { auth } from '@/config/firebase';
 import { API_BASE_URL } from '@/config/api';
 
-// Create axios instance with validated baseURL
-// If API_BASE_URL is undefined, axios will fail at request time (which we handle)
+// Create axios instance
 const participantApi = axios.create({
-  baseURL: API_BASE_URL || undefined, // undefined is valid for axios.create, will fail at request time
+  baseURL: API_BASE_URL,
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
