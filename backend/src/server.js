@@ -44,17 +44,69 @@ app.use(helmet({
 }));
 
 // CORS configuration
-// SECURITY: Restrict origins in production
-const allowedOrigins = process.env.NODE_ENV === 'production'
-  ? (process.env.ALLOWED_ORIGINS?.split(',') || [])
-  : true; // Allow all in development
+// SECURITY: Restrict origins in production, but avoid accidental lockout
+const buildAllowedOrigins = () => {
+  // In development, allow all for convenience
+  if (process.env.NODE_ENV !== 'production') {
+    return true;
+  }
 
-app.use(cors({
-  origin: allowedOrigins,
+  // In production, build a safe allowlist
+  const origins = [];
+
+  // 1) Explicit ALLOWED_ORIGINS env (comma-separated)
+  if (process.env.ALLOWED_ORIGINS) {
+    origins.push(
+      ...process.env.ALLOWED_ORIGINS
+        .split(',')
+        .map((o) => o.trim())
+        .filter(Boolean)
+    );
+  }
+
+  // 2) FRONTEND_URL fallback (single origin)
+  if (process.env.FRONTEND_URL) {
+    origins.push(process.env.FRONTEND_URL.trim());
+  }
+
+  // 3) Safe hard-coded defaults for known deployments (last-resort fallback)
+  // NOTE: Adjust these to your actual Vercel / production domains
+  const defaultOrigins = [
+    'https://missionexploit.vercel.app',
+    'https://mission-exploit.vercel.app',
+  ];
+
+  if (origins.length === 0) {
+    origins.push(...defaultOrigins);
+  }
+
+  // Remove duplicates
+  return Array.from(new Set(origins));
+};
+
+const allowedOrigins = buildAllowedOrigins();
+
+app.use(
+  cors({
+  // Dynamically validate origin against allowlist
+  origin: (origin, callback) => {
+      // Allow non-browser tools (e.g., curl, Postman) which send no Origin
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      if (allowedOrigins === true || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      console.warn(`[CORS] Blocked origin: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
+    },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-}));
+})
+);
 
 // Body parsers
 app.use(express.json({ limit: '10mb' }));
