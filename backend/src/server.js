@@ -14,6 +14,7 @@ import captainRoutes from './routes/captain.js';
 import participantRoutes from './routes/participant.js';
 import missionRoutes from './routes/mission.js';
 import authRoutes from './routes/auth.js';
+import { getHealthStatus } from './controllers/healthController.js';
 
 // Load environment variables
 dotenv.config();
@@ -43,9 +44,16 @@ app.use(helmet({
 }));
 
 // CORS configuration
+// SECURITY: Restrict origins in production
+const allowedOrigins = process.env.NODE_ENV === 'production'
+  ? (process.env.ALLOWED_ORIGINS?.split(',') || [])
+  : true; // Allow all in development
+
 app.use(cors({
-  origin: true,
+  origin: allowedOrigins,
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
 // Body parsers
@@ -66,7 +74,7 @@ app.use('/api/', generalLimiter);
 // ============================================================================
 
 /**
- * Health check endpoint
+ * Health check endpoint (basic - for deployment platforms)
  */
 app.get('/health', (req, res) => {
   res.status(200).json({
@@ -78,6 +86,23 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
   });
+});
+
+/**
+ * Detailed health check endpoint with metrics
+ */
+app.get('/api/health', async (req, res) => {
+  try {
+    const healthStatus = await getHealthStatus(req, res);
+    return healthStatus;
+  } catch (error) {
+    console.error('[Server] Health check error:', error);
+    return res.status(503).json({
+      status: 'error',
+      timestamp: new Date().toISOString(),
+      error: 'Health check failed',
+    });
+  }
 });
 
 /**

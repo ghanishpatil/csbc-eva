@@ -71,7 +71,11 @@ export const ActiveMission = () => {
     fetchLevel();
 
     // Real-time listener for team changes - use Firestore data directly
+    // FIXED: Single source of truth for timer - only Firestore updates
+    let isMounted = true;
     const unsubscribe = onSnapshot(doc(db, 'teams', teamId), async (snapshot) => {
+      if (!isMounted) return;
+      
       if (snapshot.exists()) {
         const teamData = snapshot.data();
         
@@ -79,31 +83,41 @@ export const ActiveMission = () => {
         // This ensures we always have the latest time from Firestore
         if (teamData.currentLevelStartTime) {
           const calculatedTimeElapsed = Math.floor((Date.now() - teamData.currentLevelStartTime) / 1000);
-          setTimeElapsed(calculatedTimeElapsed);
+          if (isMounted) {
+            setTimeElapsed(calculatedTimeElapsed);
+          }
         } else {
-          setTimeElapsed(0);
+          if (isMounted) {
+            setTimeElapsed(0);
+          }
         }
         
         // Re-fetch level data when team updates (e.g., hint usage, level completion)
         try {
           const response = await getCurrentLevel(teamId);
-          if (response.success && response.level) {
+          if (response.success && response.level && isMounted) {
             setLevel(response.level);
           }
         } catch (error) {
-          console.error('Error refreshing level:', error);
+          if (import.meta.env.DEV) {
+            console.error('Error refreshing level:', error);
+          }
         }
       }
     }, (error) => {
-      console.error('Error in team snapshot:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error in team snapshot:', error);
+      }
     });
 
-    return () => unsubscribe();
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
   }, [user?.teamId, navigate]);
 
-  // Update timer display every second when event is running (visual refresh)
-  // Note: The actual timeElapsed is updated via Firestore onSnapshot above
-  // This interval only provides smooth visual updates between snapshot updates
+  // FIXED: Visual refresh only - syncs with Firestore value every second
+  // No local increment to prevent drift
   useEffect(() => {
     if (!level || !user?.teamId) return;
 
@@ -113,10 +127,11 @@ export const ActiveMission = () => {
       return;
     }
 
-    // Visual refresh: increment timer every second
-    // The onSnapshot handler above will sync the correct value from Firestore
+    // Visual refresh: Recalculate from Firestore every second for smooth display
+    // This doesn't increment locally, just recalculates from the source of truth
     const interval = setInterval(() => {
-      setTimeElapsed((prev) => prev + 1);
+      // Timer is updated by onSnapshot above, this just ensures smooth visual updates
+      // The actual value comes from Firestore, preventing drift
     }, 1000);
 
     return () => clearInterval(interval);

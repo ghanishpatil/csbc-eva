@@ -91,16 +91,74 @@ export const updateLeaderboard = async (teamId, data) => {
   try {
     const db = getDb();
     const leaderboardRef = db.collection('leaderboard').doc(teamId);
-    await leaderboardRef.set(
-      {
-        ...data,
-        id: teamId,
-        lastSubmissionAt: Date.now(),
-      },
-      { merge: true }
-    );
+    
+    // Ensure all required fields are present
+    const leaderboardData = {
+      ...data,
+      id: teamId,
+      lastSubmissionAt: data.lastSubmissionAt || Date.now(),
+      // Ensure score is always a number (not undefined/null)
+      score: data.score ?? 0,
+      levelsCompleted: data.levelsCompleted ?? 0,
+      totalTimePenalty: data.totalTimePenalty ?? 0,
+    };
+    
+    await leaderboardRef.set(leaderboardData, { merge: true });
   } catch (error) {
     console.error('[FirestoreService] Error updating leaderboard:', error);
+    throw error;
+  }
+};
+
+/**
+ * Sync leaderboard with team scores (utility function to fix any discrepancies)
+ * @param {string} teamId - Optional team ID to sync, or null to sync all teams
+ * @returns {Promise<void>}
+ */
+export const syncLeaderboard = async (teamId = null) => {
+  try {
+    const db = getDb();
+    
+    if (teamId) {
+      // Sync single team
+      const teamDoc = await db.collection('teams').doc(teamId).get();
+      if (!teamDoc.exists) {
+        throw new Error('Team not found');
+      }
+      
+      const teamData = teamDoc.data();
+      await updateLeaderboard(teamId, {
+        teamName: teamData.name,
+        groupId: teamData.groupId,
+        score: teamData.score || 0,
+        levelsCompleted: teamData.levelsCompleted || 0,
+        totalTimePenalty: teamData.timePenalty || 0,
+      });
+    } else {
+      // Sync all teams
+      const teamsSnapshot = await db.collection('teams').get();
+      const batch = db.batch();
+      
+      teamsSnapshot.docs.forEach((doc) => {
+        const teamData = doc.data();
+        const leaderboardRef = db.collection('leaderboard').doc(doc.id);
+        
+        batch.set(leaderboardRef, {
+          id: doc.id,
+          teamName: teamData.name || '',
+          groupId: teamData.groupId || null,
+          score: teamData.score || 0,
+          levelsCompleted: teamData.levelsCompleted || 0,
+          totalTimePenalty: teamData.timePenalty || 0,
+          lastSubmissionAt: teamData.updatedAt || Date.now(),
+        }, { merge: true });
+      });
+      
+      await batch.commit();
+      console.log(`[FirestoreService] Synced ${teamsSnapshot.size} teams to leaderboard`);
+    }
+  } catch (error) {
+    console.error('[FirestoreService] Error syncing leaderboard:', error);
     throw error;
   }
 };

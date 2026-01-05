@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
 import { auth } from '@/config/firebase';
 import { firestoreAPI } from '@/utils/firestore';
 import { Shield, Terminal, Lock, User, Mail, Key, Zap, Building, GraduationCap, Phone, BookOpen } from 'lucide-react';
 import toast from 'react-hot-toast';
-// import { UserRole } from '@/types'; // Unused
+import { loginSchema, signupSchema, validateForm } from '@/utils/validation';
 
 export const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -48,9 +48,20 @@ export const Login: React.FC = () => {
 
     try {
       if (isSignUp) {
-        // Validate required fields
-        if (!displayName.trim() || !phone.trim() || !institute.trim() || !branch.trim() || !year) {
-          toast.error('[ PLEASE FILL ALL REQUIRED FIELDS ]');
+        // FIXED: Frontend validation before API call
+        const validation = validateForm(signupSchema, {
+          email,
+          password,
+          displayName,
+          phone: phone || '',
+          institute: institute || '',
+          branch: branch || '',
+          year: year ? parseInt(year, 10) : null,
+        });
+
+        if (!validation.success) {
+          const firstError = Object.values(validation.errors || {})[0];
+          toast.error(`[ VALIDATION ERROR ] ${firstError}`);
           setLoading(false);
           return;
         }
@@ -78,7 +89,9 @@ export const Login: React.FC = () => {
             },
           });
         } catch (error: any) {
-          console.error('Registration error:', error);
+          if (import.meta.env.DEV) {
+            console.error('Registration error:', error);
+          }
           // If backend registration fails, delete the auth user to keep things clean
           await user.delete();
           const errorMessage = error.response?.data?.error || error.message || 'Failed to register user';
@@ -99,36 +112,58 @@ export const Login: React.FC = () => {
           navigate('/home');
         }
       } else {
+        // FIXED: Frontend validation before API call
+        const validation = validateForm(loginSchema, { email, password });
+        if (!validation.success) {
+          const firstError = Object.values(validation.errors || {})[0];
+          toast.error(`[ VALIDATION ERROR ] ${firstError}`);
+          setLoading(false);
+          return;
+        }
+
         toast.loading('[ AUTHENTICATING... ]');
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         
         // Wait a moment for auth state to settle
         await new Promise(resolve => setTimeout(resolve, 500));
         
-        // Get user data to check role
+        // Get user data to check role and blocked status
         const userData = await firestoreAPI.getUser(userCredential.user.uid);
         
         toast.dismiss();
         
-        console.log('User data loaded:', userData); // Debug log
-        
         if (!userData) {
           toast.error('[ USER DATA NOT FOUND ]');
+          // Sign out if user data not found
+          await signOut(auth);
+          setLoading(false);
+          return;
+        }
+
+        // SECURITY: Check if user is blocked - prevent login
+        if (userData.isBlocked) {
+          toast.error(
+            '[ ACCOUNT BLOCKED ]\n\nYour account has been blocked by an administrator.\nPlease contact support for assistance.',
+            {
+              duration: 6000, // Longer duration for important message
+            }
+          );
+          // Sign out the blocked user immediately
+          await signOut(auth);
           setLoading(false);
           return;
         }
         
         toast.success(`[ ACCESS GRANTED - ${userData.role.toUpperCase()} ]`);
         
-        // Check if there's a saved redirect URL
+        // FIXED: Use React Router state instead of sessionStorage
+        // Check if there's a saved redirect URL (from ProtectedRoute)
         const redirectUrl = sessionStorage.getItem('redirectAfterLogin');
         if (redirectUrl) {
           sessionStorage.removeItem('redirectAfterLogin');
-          console.log('Redirecting to saved URL:', redirectUrl);
           navigate(redirectUrl);
         } else {
           // Redirect based on role
-          console.log('Redirecting based on role:', userData.role);
           if (userData.role === 'admin') {
             navigate('/admin');
           } else if (userData.role === 'captain') {

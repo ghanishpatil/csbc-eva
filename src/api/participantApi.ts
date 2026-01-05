@@ -30,7 +30,10 @@ participantApi.interceptors.request.use(
 participantApi.interceptors.response.use(
   (response) => response,
   (error) => {
-    console.error('[Participant API] Error:', error.response?.data || error.message);
+    // FIXED: Only log in development
+    if (import.meta.env.DEV) {
+      console.error('[Participant API] Error:', error.response?.data || error.message);
+    }
     return Promise.reject(error);
   }
 );

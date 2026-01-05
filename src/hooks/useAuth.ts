@@ -3,6 +3,7 @@ import { onAuthStateChanged, signOut as firebaseSignOut } from 'firebase/auth';
 import { auth } from '@/config/firebase';
 import { useAuthStore } from '@/store/authStore';
 import { firestoreAPI } from '@/utils/firestore';
+import toast from 'react-hot-toast';
 
 export const useAuth = () => {
   const { user, loading, setUser, setLoading, logout } = useAuthStore();
@@ -11,21 +12,48 @@ export const useAuth = () => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         try {
-          console.log('Auth state changed - fetching user data for:', firebaseUser.uid);
+          if (import.meta.env.DEV) {
+            console.log('Auth state changed - fetching user data for:', firebaseUser.uid);
+          }
           const userData = await firestoreAPI.getUser(firebaseUser.uid);
           if (userData) {
-            console.log('User data loaded:', userData);
+            // SECURITY: Check if user is blocked - sign out immediately
+            if (userData.isBlocked) {
+              if (import.meta.env.DEV) {
+                console.warn('Blocked user detected, signing out:', firebaseUser.uid);
+              }
+              await firebaseSignOut(auth);
+              toast.error(
+                '[ ACCOUNT BLOCKED ]\n\nYour account has been blocked by an administrator.\nPlease contact support for assistance.',
+                {
+                  duration: 6000,
+                }
+              );
+              setUser(null);
+              setLoading(false);
+              return;
+            }
+
+            if (import.meta.env.DEV) {
+              console.log('User data loaded:', userData);
+            }
             setUser(userData);
           } else {
-            console.error('User document not found in Firestore');
+            if (import.meta.env.DEV) {
+              console.error('User document not found in Firestore');
+            }
             setUser(null);
           }
         } catch (error) {
-          console.error('Error fetching user data:', error);
+          if (import.meta.env.DEV) {
+            console.error('Error fetching user data:', error);
+          }
           setUser(null);
         }
       } else {
-        console.log('No user logged in');
+        if (import.meta.env.DEV) {
+          console.log('No user logged in');
+        }
         setUser(null);
       }
       setLoading(false);

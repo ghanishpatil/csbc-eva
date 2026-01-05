@@ -17,9 +17,29 @@ import { getEventStatus } from '../services/eventService.js';
  */
 export const submitFlag = async (req, res) => {
   try {
-    const { teamId, levelId, flag, timeTaken, captainId, participantId } = req.body;
+    const { teamId, levelId, flag } = req.body;
+    
+    // CRITICAL SECURITY: Verify user is authenticated and belongs to the team
+    const userId = req.participant?.userId;
+    const userData = req.participant?.userData;
+    
+    if (!userId || !userData) {
+      return res.status(401).json({
+        success: false,
+        error: 'Unauthorized: Authentication required',
+      });
+    }
 
-    console.log(`[FlagController] Submission attempt - Team: ${teamId}, Level: ${levelId}`);
+    // CRITICAL SECURITY: Verify user belongs to the team they're submitting for
+    if (userData.teamId !== teamId) {
+      console.warn(`[FlagController] SECURITY: User ${userId} attempted to submit flag for team ${teamId}, but belongs to team ${userData.teamId || 'none'}`);
+      return res.status(403).json({
+        success: false,
+        error: 'Forbidden: You can only submit flags for your own team',
+      });
+    }
+
+    console.log(`[FlagController] Submission attempt - Team: ${teamId}, Level: ${levelId}, User: ${userId}`);
 
     // FIX 4: Verify event is active
     const eventStatus = await getEventStatus();
@@ -91,6 +111,11 @@ export const submitFlag = async (req, res) => {
       });
     }
 
+    // CRITICAL SECURITY: Calculate timeTaken server-side from check-in time (prevents client manipulation)
+    const checkInData = checkInDoc.data();
+    const checkInTime = checkInData.checkedInAt || Date.now();
+    const timeTaken = Math.max(0, Math.floor((Date.now() - checkInTime) / 60000)); // Time in minutes
+
     // CRITICAL: Verify team is at correct sequential level
     if (team.currentLevel !== level.number) {
       return res.status(403).json({
@@ -124,62 +149,119 @@ export const submitFlag = async (req, res) => {
     // Flag is correct - calculate score
     console.log(`[FlagController] Correct flag - Team: ${teamId}, Level: ${levelId}`);
 
-    // Get hint usage for this team/level
+    // Get hint usage for this team/level (server-side verification)
     const hintUsage = await getTeamHintUsage(teamId, levelId, db);
     const hintsUsed = hintUsage.length;
 
-    // Calculate final score
+    // CRITICAL SECURITY: Validate scoring parameters to prevent manipulation
+    const baseScore = typeof level.basePoints === 'number' && level.basePoints >= 0 ? level.basePoints : 0;
+    const pointDeduction = typeof level.pointDeduction === 'number' && level.pointDeduction >= 0 ? level.pointDeduction : 0;
+    const timePenalty = typeof level.timePenalty === 'number' && level.timePenalty >= 0 ? level.timePenalty : 0;
+    const hintType = level.hintType === 'points' || level.hintType === 'time' ? level.hintType : 'points';
+
+    // Calculate final score (all inputs validated server-side)
     const scoring = calculateFinalScore({
-      baseScore: level.basePoints,
+      baseScore,
       hintsUsed,
-      pointDeduction: level.pointDeduction || 0,
-      timeTaken: timeTaken || 0,
-      timePenalty: level.timePenalty || 0,
-      hintType: level.hintType || 'points',
+      pointDeduction,
+      timeTaken, // Server-calculated, not from client
+      timePenalty,
+      hintType,
     });
 
-    // Create submission record
-    const submissionId = await createSubmission({
-      teamId,
-      levelId,
-      flag: null, // NEVER store the actual flag
-      flagHash: null, // Don't even store the hash
-      timeTaken: timeTaken || 0,
-      hintsUsed,
-      baseScore: scoring.baseScore,
-      pointDeduction: scoring.pointDeduction,
-      timePenalty: scoring.timePenalty,
-      finalScore: scoring.finalScore,
-      submittedBy: captainId || participantId || 'unknown',
-    });
-
-    // Update team score
-    const newTeamScore = (team.score || 0) + scoring.finalScore;
-    const newLevelsCompleted = (team.levelsCompleted || 0) + 1;
-    const newTimePenalty = (team.timePenalty || 0) + scoring.timePenalty;
-
-    // FIX 3: Enforce state machine - Update current level to next level (sequential progression)
-    // State transition: SOLVING → MOVING (after successful flag submission)
+    // CRITICAL FIX: Use Firestore transaction with unique document ID to prevent duplicate submissions
+    // Using teamId_levelId as document ID ensures uniqueness and atomic duplicate prevention
     const nextLevelNumber = level.number + 1;
+    const submissionId = `${teamId}_${levelId}`; // Unique document ID prevents duplicates
+    let finalTeamScore;
+    let finalLevelsCompleted;
+    let finalTimePenalty;
 
-    await updateTeam(teamId, {
-      score: newTeamScore,
-      levelsCompleted: newLevelsCompleted,
-      timePenalty: newTimePenalty,
-      currentLevel: nextLevelNumber, // Unlock next level
-      status: 'moving', // State transition: SOLVING → MOVING (team must move to next location)
-    });
+    // CRITICAL: Use transaction with unique document ID to prevent duplicate submissions atomically
+    try {
+      await db.runTransaction(async (transaction) => {
+        // CRITICAL: Check if submission already exists (atomic check within transaction)
+        const submissionRef = db.collection('submissions').doc(submissionId);
+        const submissionDoc = await transaction.get(submissionRef);
+        
+        if (submissionDoc.exists) {
+          throw new Error('DUPLICATE_SUBMISSION: This level has already been completed by your team');
+        }
 
-    // Update leaderboard
-    await updateLeaderboard(teamId, {
-      teamName: team.name,
-      groupId: team.groupId,
-      score: newTeamScore,
-      levelsCompleted: newLevelsCompleted,
-      totalTimePenalty: newTimePenalty,
-    });
+        // Re-fetch team data within transaction to get latest score (prevents race conditions)
+        const teamRef = db.collection('teams').doc(teamId);
+        const teamDoc = await transaction.get(teamRef);
+        
+        if (!teamDoc.exists) {
+          throw new Error('Team not found during transaction');
+        }
 
-    console.log(`[FlagController] Score updated - Team: ${teamId}, +${scoring.finalScore} points`);
+        const currentTeamData = teamDoc.data();
+        
+        // CRITICAL: Calculate new scores based on CURRENT team data (prevents double counting)
+        // This ensures if the transaction retries, it uses the latest score
+        finalTeamScore = (currentTeamData.score || 0) + scoring.finalScore;
+        finalLevelsCompleted = (currentTeamData.levelsCompleted || 0) + 1;
+        finalTimePenalty = (currentTeamData.timePenalty || 0) + scoring.timePenalty;
+
+        // Create submission record with unique ID (prevents duplicate creation)
+        // Using teamId_levelId ensures only one submission per team per level
+        transaction.set(submissionRef, {
+          id: submissionId,
+          teamId,
+          levelId,
+          flag: null, // NEVER store the actual flag
+          flagHash: null, // Don't even store the hash
+          timeTaken, // Server-calculated time
+          hintsUsed,
+          baseScore: scoring.baseScore,
+          pointDeduction: scoring.pointDeduction,
+          timePenalty: scoring.timePenalty,
+          finalScore: scoring.finalScore,
+          submittedBy: userId, // Use authenticated user ID
+          submittedAt: Date.now(),
+          scoreProcessed: true, // Flag to indicate backend already processed the score
+          // SECURITY: Audit trail
+          ipAddress: req.ip || 'unknown',
+          userAgent: req.get('user-agent') || 'unknown',
+        });
+
+        // Update team score atomically
+        transaction.update(teamRef, {
+          score: finalTeamScore,
+          levelsCompleted: finalLevelsCompleted,
+          timePenalty: finalTimePenalty,
+          currentLevel: nextLevelNumber, // Unlock next level
+          status: 'moving', // State transition: SOLVING → MOVING
+          updatedAt: Date.now(),
+        });
+
+        // Update leaderboard atomically
+        const leaderboardRef = db.collection('leaderboard').doc(teamId);
+        transaction.set(leaderboardRef, {
+          id: teamId,
+          teamName: team.name,
+          groupId: team.groupId,
+          score: finalTeamScore,
+          levelsCompleted: finalLevelsCompleted,
+          totalTimePenalty: finalTimePenalty,
+          lastSubmissionAt: Date.now(),
+        }, { merge: true });
+      });
+    } catch (transactionError) {
+      // Handle duplicate submission error gracefully
+      if (transactionError.message && transactionError.message.includes('DUPLICATE_SUBMISSION')) {
+        return res.status(400).json({
+          success: false,
+          error: 'This level has already been completed by your team',
+        });
+      }
+      // Re-throw other errors to be handled by outer catch block
+      throw transactionError;
+    }
+
+    // SECURITY: Comprehensive audit logging
+    console.log(`[FlagController] Score updated - Team: ${teamId}, Level: ${levelId}, User: ${userId}, Score: +${scoring.finalScore} points, Time: ${timeTaken}min, Hints: ${hintsUsed}`);
 
     // Get next level's location clue if available
     // CRITICAL: Scope by (groupId + level number) for group-specific missions

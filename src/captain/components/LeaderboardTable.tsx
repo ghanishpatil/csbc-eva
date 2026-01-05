@@ -29,8 +29,26 @@ export const LeaderboardTable: React.FC<LeaderboardTableProps> = ({
     return 'border-cyber-border/50 hover:border-cyber-border';
   };
 
-  // Sort data by score descending
-  const sortedData = [...data].sort((a, b) => (b.score || 0) - (a.score || 0));
+  // CRITICAL FIX: Proper sorting for leaderboard ranking
+  // Sort by: score (desc) -> levels completed (desc) -> time penalty (asc) -> last submission (asc)
+  const sortedData = [...data].sort((a, b) => {
+    // Primary: Score (descending)
+    const scoreDiff = (b.score || 0) - (a.score || 0);
+    if (scoreDiff !== 0) return scoreDiff;
+    
+    // Secondary: Levels completed (descending)
+    const levelsDiff = (b.levelsCompleted || 0) - (a.levelsCompleted || 0);
+    if (levelsDiff !== 0) return levelsDiff;
+    
+    // Tertiary: Time penalty (ascending) - lower penalty = better rank
+    const penaltyDiff = (a.totalTimePenalty || 0) - (b.totalTimePenalty || 0);
+    if (penaltyDiff !== 0) return penaltyDiff;
+    
+    // Quaternary: Last submission time (ascending)
+    const timeA = a.lastSubmissionAt || 0;
+    const timeB = b.lastSubmissionAt || 0;
+    return timeA - timeB;
+  });
 
   return (
     <CyberCard>

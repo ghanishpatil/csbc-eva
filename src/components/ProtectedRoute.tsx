@@ -69,6 +69,11 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to="/login" replace />;
   }
 
+  // SECURITY: Check if user is blocked - redirect to login
+  if (user.isBlocked) {
+    return <Navigate to="/login" replace />;
+  }
+
   // User authenticated but role doesn't match - show Access Denied
   // NOTE: This is UI-only. Backend STILL enforces all permissions via middleware.
   if (allowedRoles && !allowedRoles.includes(user.role)) {

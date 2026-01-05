@@ -4,6 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useFirestoreListeners } from '@/hooks/useFirestoreListener';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import ErrorBoundary from '@/components/ErrorBoundary';
+import { OfflineIndicator } from '@/components/OfflineIndicator';
 import AdminLayout from '@/components/admin/AdminLayout';
 
 // Pages
@@ -58,25 +59,31 @@ function App() {
   return (
     <ErrorBoundary>
       <HashRouter>
+        <OfflineIndicator />
         <Toaster
         position="top-right"
         toastOptions={{
-          duration: 3000,
+          duration: 4000, // FIXED: Increased default duration
           style: {
             background: '#363636',
             color: '#fff',
           },
           success: {
+            duration: 3000, // Success messages: 3s
             iconTheme: {
               primary: '#10b981',
               secondary: '#fff',
             },
           },
           error: {
+            duration: 5000, // FIXED: Error messages: 5s (longer for important errors)
             iconTheme: {
               primary: '#ef4444',
               secondary: '#fff',
             },
+          },
+          loading: {
+            duration: Infinity, // Loading toasts stay until dismissed
           },
         }}
       />

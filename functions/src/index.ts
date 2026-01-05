@@ -14,7 +14,17 @@ export const calculateScore = functions.firestore
   .onCreate(async (snap, context) => {
     try {
       const submission = snap.data();
-      const { teamId, finalScore, timePenalty, levelId } = submission;
+      const { teamId, finalScore, timePenalty, levelId, scoreProcessed } = submission;
+
+      // CRITICAL FIX: Skip processing if backend already processed the score
+      // This prevents double scoring when backend uses transactions
+      if (scoreProcessed === true) {
+        console.log('Score already processed by backend, skipping Cloud Function:', {
+          teamId,
+          submissionId: context.params.submissionId,
+        });
+        return null;
+      }
 
       console.log('Processing submission:', {
         teamId,

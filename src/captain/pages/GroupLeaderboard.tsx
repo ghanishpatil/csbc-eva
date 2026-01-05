@@ -71,7 +71,25 @@ export const GroupLeaderboard: React.FC = () => {
   }
 
   const { teams, groupName } = groupData;
-  const sortedTeams = [...teams].sort((a, b) => (b.score || 0) - (a.score || 0));
+  // CRITICAL FIX: Proper sorting for leaderboard ranking
+  const sortedTeams = [...teams].sort((a: any, b: any) => {
+    // Primary: Score (descending)
+    const scoreDiff = (b.score || 0) - (a.score || 0);
+    if (scoreDiff !== 0) return scoreDiff;
+    
+    // Secondary: Levels completed (descending)
+    const levelsDiff = (b.levelsCompleted || 0) - (a.levelsCompleted || 0);
+    if (levelsDiff !== 0) return levelsDiff;
+    
+    // Tertiary: Time penalty (ascending) - lower penalty = better rank
+    const penaltyDiff = (a.timePenalty || 0) - (b.timePenalty || 0);
+    if (penaltyDiff !== 0) return penaltyDiff;
+    
+    // Quaternary: Last submission time (ascending)
+    const timeA = a.updatedAt || a.lastSubmissionAt || 0;
+    const timeB = b.updatedAt || b.lastSubmissionAt || 0;
+    return timeA - timeB;
+  });
   const totalScore = sortedTeams.reduce((acc, t) => acc + (t.score || 0), 0);
   const totalLevelsCompleted = sortedTeams.reduce((acc, t) => acc + (t.levelsCompleted || 0), 0);
 

@@ -1,13 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from '../../config/firebase';
-// import { signInWithCustomToken as firebaseSignInWithCustomToken } from 'firebase/auth'; // Unused
-import { Users, Shield, UserX, Search, Filter, Edit2, Trash2, Ban, CheckCircle, Building, GraduationCap, Phone, Mail, Calendar, Eye, X, LogIn, ExternalLink } from 'lucide-react';
+import { Users, Shield, UserX, Search, Filter, Edit2, Trash2, Ban, CheckCircle, Building, GraduationCap, Phone, Mail, Calendar, Eye, X, LogIn, ExternalLink, ChevronLeft, ChevronRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { CyberCard } from '@/components/ui/CyberCard';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { impersonateUser, updateUser, blockUser, deleteUser } from '@/api/adminApi';
-// import { NeonButton } from '@/components/ui/NeonButton'; // Unused
+import { useDebounce } from '@/utils/useDebounce';
+import { usePagination } from '@/utils/usePagination';
 
 interface User {
   id: string;
@@ -150,26 +150,44 @@ const AdminUsers = () => {
         toast.error(response.error || 'Failed to generate impersonation token');
       }
     } catch (error: any) {
-      console.error('Error impersonating user:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error impersonating user:', error);
+      }
       toast.error(error.response?.data?.error || 'Failed to impersonate user');
     } finally {
       setImpersonating(false);
     }
   };
 
-  const filteredUsers = users.filter((user) => {
-    const search = searchTerm.toLowerCase();
-    const matchesSearch =
-      user.displayName?.toLowerCase().includes(search) ||
-      user.email?.toLowerCase().includes(search) ||
-      user.phone?.toLowerCase().includes(search) ||
-      user.institute?.toLowerCase().includes(search) ||
-      user.branch?.toLowerCase().includes(search) ||
-      user.year?.toLowerCase().includes(search) ||
-      user.id.toLowerCase().includes(search);
-    const matchesRole = roleFilter === 'all' || user.role === roleFilter;
-    return matchesSearch && matchesRole;
-  });
+  // FIXED: Add debouncing to search input (300ms delay)
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
+
+  // Memoize filtered users for performance
+  const filteredUsers = useMemo(() => {
+    return users.filter((user) => {
+      const search = debouncedSearchTerm.toLowerCase();
+      const matchesSearch =
+        !search ||
+        user.displayName?.toLowerCase().includes(search) ||
+        user.email?.toLowerCase().includes(search) ||
+        user.phone?.toLowerCase().includes(search) ||
+        user.institute?.toLowerCase().includes(search) ||
+        user.branch?.toLowerCase().includes(search) ||
+        user.year?.toLowerCase().includes(search) ||
+        user.id.toLowerCase().includes(search);
+      const matchesRole = roleFilter === 'all' || user.role === roleFilter;
+      return matchesSearch && matchesRole;
+    });
+  }, [users, debouncedSearchTerm, roleFilter]);
+
+  // FIXED: Add pagination
+  const {
+    currentPage,
+    totalPages,
+    paginatedItems: paginatedUsers,
+    nextPage,
+    prevPage,
+  } = usePagination(filteredUsers, { itemsPerPage: 20, initialPage: 1 });
 
   const stats = {
     total: users.length,
@@ -292,7 +310,7 @@ const AdminUsers = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredUsers.map((user) => (
+                {paginatedUsers.map((user) => (
                   <tr
                     key={user.id}
                     className="border-b border-cyber-border/50 hover:bg-cyber-bg-darker transition-colors"
@@ -443,6 +461,38 @@ const AdminUsers = () => {
               <Users className="h-16 w-16 mx-auto mb-4 opacity-30" />
               <p className="text-lg font-medium">No users found</p>
               <p className="text-sm text-gray-600 mt-1">Try adjusting your search or filters</p>
+            </div>
+          )}
+
+          {/* FIXED: Pagination Controls */}
+          {filteredUsers.length > 0 && totalPages > 1 && (
+            <div className="flex items-center justify-between px-6 py-4 border-t border-cyber-border bg-cyber-bg-darker">
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-gray-400">
+                  Showing {((currentPage - 1) * 20) + 1} to {Math.min(currentPage * 20, filteredUsers.length)} of {filteredUsers.length} users
+                </span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={prevPage}
+                  disabled={currentPage === 1}
+                  className="px-3 py-2 rounded-lg bg-cyber-bg-darker border border-cyber-border text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-cyber-bg transition-colors"
+                  aria-label="Previous page"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <span className="text-sm text-gray-400 px-3">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <button
+                  onClick={nextPage}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-2 rounded-lg bg-cyber-bg-darker border border-cyber-border text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-cyber-bg transition-colors"
+                  aria-label="Next page"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
             </div>
           )}
         </CyberCard>

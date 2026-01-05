@@ -29,6 +29,7 @@ import {
 } from '../controllers/adminController.js';
 import { validateRequest, verifyAdmin } from '../middleware/validateRequest.js';
 import { adminLimiter } from '../middleware/rateLimiter.js';
+import { createBackupController, getBackupStatsController } from '../controllers/backupController.js';
 
 const router = express.Router();
 
@@ -99,6 +100,18 @@ router.post('/update-score', validateRequest(updateScoreSchema), updateScore);
  * Get platform-wide statistics
  */
 router.get('/stats', getPlatformStats);
+
+/**
+ * POST /api/admin/backup
+ * Create a backup of all competition data
+ */
+router.post('/backup', createBackupController);
+
+/**
+ * GET /api/admin/backup/stats
+ * Get backup statistics
+ */
+router.get('/backup/stats', getBackupStatsController);
 
 /**
  * GET /api/admin/recent-activity

@@ -17,26 +17,34 @@ export const calculateFinalScore = ({
   timePenalty = 0,
   hintType = 'points',
 }) => {
-  let finalScore = baseScore;
+  // SECURITY: Validate all inputs to prevent manipulation
+  const validatedBaseScore = Math.max(0, Math.floor(Number(baseScore) || 0));
+  const validatedHintsUsed = Math.max(0, Math.floor(Number(hintsUsed) || 0));
+  const validatedPointDeduction = Math.max(0, Number(pointDeduction) || 0);
+  const validatedTimeTaken = Math.max(0, Number(timeTaken) || 0);
+  const validatedTimePenalty = Math.max(0, Number(timePenalty) || 0);
+  const validatedHintType = (hintType === 'points' || hintType === 'time') ? hintType : 'points';
+
+  let finalScore = validatedBaseScore;
   let totalPointDeduction = 0;
   let totalTimePenalty = 0;
   
-  if (hintType === 'points') {
+  if (validatedHintType === 'points') {
     // Points-based hint system
-    totalPointDeduction = hintsUsed * pointDeduction;
-    finalScore = Math.max(0, baseScore - totalPointDeduction);
-  } else if (hintType === 'time') {
+    totalPointDeduction = validatedHintsUsed * validatedPointDeduction;
+    finalScore = Math.max(0, validatedBaseScore - totalPointDeduction);
+  } else if (validatedHintType === 'time') {
     // Time-based hint system (doesn't affect score, only adds time penalty)
-    totalTimePenalty = hintsUsed * timePenalty;
+    totalTimePenalty = validatedHintsUsed * validatedTimePenalty;
     // Score remains the same, but time penalty is tracked
   }
   
   return {
     finalScore: Math.round(finalScore),
-    baseScore,
-    pointDeduction: totalPointDeduction,
-    timePenalty: totalTimePenalty,
-    totalTime: timeTaken + totalTimePenalty,
+    baseScore: validatedBaseScore,
+    pointDeduction: Math.round(totalPointDeduction),
+    timePenalty: Math.round(totalTimePenalty),
+    totalTime: Math.round(validatedTimeTaken + totalTimePenalty),
   };
 };
 

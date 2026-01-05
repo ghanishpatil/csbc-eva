@@ -150,26 +150,56 @@ export const updateScore = async (req, res) => {
     }
 
     const teamData = teamDoc.data();
-    const newScore = (teamData.score || 0) + scoreChange;
+    const oldScore = teamData.score || 0;
+    const newScore = Math.max(0, oldScore + scoreChange);
+
+    // SECURITY: Validate score change is reasonable (prevent accidental huge changes)
+    if (Math.abs(scoreChange) > 10000) {
+      return res.status(400).json({
+        success: false,
+        error: 'Score change too large. Maximum allowed: ±10000 points per adjustment.',
+      });
+    }
 
     // Update team
     await updateTeam(teamId, {
-      score: Math.max(0, newScore), // Ensure score doesn't go negative
+      score: newScore,
     });
 
-    // Update leaderboard
+    // Update leaderboard - ensure it's in sync with team score
     await updateLeaderboard(teamId, {
       teamName: teamData.name,
       groupId: teamData.groupId,
-      score: Math.max(0, newScore),
+      score: newScore,
       levelsCompleted: teamData.levelsCompleted || 0,
       totalTimePenalty: teamData.timePenalty || 0,
+      lastSubmissionAt: Date.now(),
     });
 
-    // Log admin action
+    // SECURITY: Comprehensive audit logging for admin actions
+    const adminId = req.admin?.userId || 'unknown';
     console.log(
-      `[AdminController] Manual score adjustment - Team: ${teamId}, Change: ${scoreChange}, Reason: ${reason || 'N/A'}`
+      `[AdminController] SECURITY AUDIT - Manual score adjustment - Admin: ${adminId}, Team: ${teamId} (${teamData.name}), Old Score: ${oldScore}, Change: ${scoreChange > 0 ? '+' : ''}${scoreChange}, New Score: ${newScore}, Reason: ${reason || 'N/A'}`
     );
+
+    // TODO: Store in audit log collection for compliance
+    try {
+      await db.collection('audit_logs').add({
+        action: 'score_adjustment',
+        adminId,
+        teamId,
+        teamName: teamData.name,
+        oldScore,
+        scoreChange,
+        newScore,
+        reason: reason || 'N/A',
+        timestamp: Date.now(),
+        ipAddress: req.ip || 'unknown',
+      });
+    } catch (auditError) {
+      console.error('[AdminController] Failed to write audit log:', auditError);
+      // Don't fail the request if audit logging fails
+    }
 
     return res.status(200).json({
       success: true,

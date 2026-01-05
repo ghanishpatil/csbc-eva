@@ -21,7 +21,10 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('Uncaught error:', error, errorInfo);
+    // FIXED: Only log in development
+    if (import.meta.env.DEV) {
+      console.error('Uncaught error:', error, errorInfo);
+    }
   }
 
   private handleReload = () => {

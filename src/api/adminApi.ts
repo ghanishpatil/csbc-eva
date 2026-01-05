@@ -19,7 +19,10 @@ adminApi.interceptors.request.use(
       const token = await user.getIdToken();
       config.headers.Authorization = `Bearer ${token}`;
     }
-    console.log(`[Admin API] ${config.method?.toUpperCase()} ${config.url}`);
+    // FIXED: Only log in development
+    if (import.meta.env.DEV) {
+      console.log(`[Admin API] ${config.method?.toUpperCase()} ${config.url}`);
+    }
     return config;
   },
   (error) => {
@@ -31,7 +34,10 @@ adminApi.interceptors.request.use(
 adminApi.interceptors.response.use(
   (response) => response,
   (error) => {
-    console.error('[Admin API] Error:', error.response?.data || error.message);
+    // FIXED: Only log in development
+    if (import.meta.env.DEV) {
+      console.error('[Admin API] Error:', error.response?.data || error.message);
+    }
     return Promise.reject(error);
   }
 );

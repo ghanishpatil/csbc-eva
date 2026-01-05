@@ -12,24 +12,14 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ compact = false }) => 
 
   // Build leaderboard from teams if leaderboard collection is empty
   const displayLeaderboard = useMemo(() => {
-    if (leaderboard.length > 0) {
-      return leaderboard;
-    }
+    let dataToSort = [];
     
-    // Fallback: Build leaderboard from teams data
-    // Include all teams but sort by score (teams with scores first)
-    const allTeams = teams
-      .sort((a, b) => {
-        // First sort by score (descending)
-        const scoreDiff = (b.score || 0) - (a.score || 0);
-        if (scoreDiff !== 0) return scoreDiff;
-        // Then by levels completed (descending)
-        const levelsDiff = (b.levelsCompleted || 0) - (a.levelsCompleted || 0);
-        if (levelsDiff !== 0) return levelsDiff;
-        // Finally by name (ascending)
-        return (a.name || '').localeCompare(b.name || '');
-      })
-      .map((team, index) => ({
+    if (leaderboard.length > 0) {
+      // Use leaderboard data if available
+      dataToSort = [...leaderboard];
+    } else {
+      // Fallback: Build leaderboard from teams data
+      dataToSort = teams.map((team) => ({
         id: team.id,
         teamId: team.id,
         teamName: team.name,
@@ -39,10 +29,38 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({ compact = false }) => 
         levelsCompleted: team.levelsCompleted || 0,
         totalTimePenalty: team.timePenalty || 0,
         lastSubmissionAt: team.updatedAt,
-        rank: index + 1,
       }));
+    }
     
-    return allTeams;
+    // CRITICAL FIX: Proper sorting for leaderboard ranking
+    // 1. Sort by score (descending) - highest score first
+    // 2. If scores are equal, sort by levels completed (descending) - more levels first
+    // 3. If levels are equal, sort by time penalty (ascending) - less penalty first (faster completion)
+    // 4. If all equal, sort by last submission time (ascending) - earlier submission first
+    const sorted = dataToSort.sort((a, b) => {
+      // Primary: Score (descending)
+      const scoreDiff = (b.score || 0) - (a.score || 0);
+      if (scoreDiff !== 0) return scoreDiff;
+      
+      // Secondary: Levels completed (descending)
+      const levelsDiff = (b.levelsCompleted || 0) - (a.levelsCompleted || 0);
+      if (levelsDiff !== 0) return levelsDiff;
+      
+      // Tertiary: Time penalty (ascending) - lower penalty = better rank
+      const penaltyDiff = (a.totalTimePenalty || 0) - (b.totalTimePenalty || 0);
+      if (penaltyDiff !== 0) return penaltyDiff;
+      
+      // Quaternary: Last submission time (ascending) - earlier = better rank
+      const timeA = a.lastSubmissionAt || 0;
+      const timeB = b.lastSubmissionAt || 0;
+      return timeA - timeB;
+    });
+    
+    // Assign ranks (handle ties properly)
+    return sorted.map((entry, index) => ({
+      ...entry,
+      rank: index + 1,
+    }));
   }, [leaderboard, teams]);
 
   const getRankIcon = (rank: number) => {
