@@ -1,4 +1,6 @@
-import * as functions from 'firebase-functions';
+// Use Firebase Functions v1 compat layer to keep existing API (.firestore.document, https.onCall)
+// This avoids v2 typing issues while still being supported on Node 20.
+import * as functions from 'firebase-functions/v1';
 import * as admin from 'firebase-admin';
 
 admin.initializeApp();
@@ -6,147 +8,57 @@ admin.initializeApp();
 const db = admin.firestore();
 
 /**
- * Cloud Function: Calculate and update score when a submission is created
- * Triggers on new submission document creation
+ * Cloud Function: (LEGACY) Calculate score on submission creation
+ *
+ * IMPORTANT:
+ * Scoring is now handled exclusively by the Express backend in a single
+ * Firestore transaction (`submitFlag` controller). To guarantee that points
+ * are applied exactly once per correct flag (and that hint penalties are
+ * not double-counted), this Cloud Function has been turned into a NO-OP.
+ *
+ * It is kept only to avoid breaking existing deployments that still have
+ * the trigger configured in Firebase.
  */
 export const calculateScore = functions.firestore
   .document('submissions/{submissionId}')
   .onCreate(async (snap, context) => {
-    try {
-      const submission = snap.data();
-      const { teamId, finalScore, timePenalty, levelId, scoreProcessed } = submission;
+    const submission = snap.data();
+    const { teamId } = submission || {};
 
-      // CRITICAL FIX: Skip processing if backend already processed the score
-      // This prevents double scoring when backend uses transactions
-      if (scoreProcessed === true) {
-        console.log('Score already processed by backend, skipping Cloud Function:', {
-          teamId,
-          submissionId: context.params.submissionId,
-        });
-        return null;
-      }
+    console.log('calculateScore (legacy) trigger invoked but scoring is handled by backend. No action taken.', {
+      teamId,
+      submissionId: context.params.submissionId,
+    });
 
-      console.log('Processing submission:', {
-        teamId,
-        finalScore,
-        timePenalty,
-        levelId,
-      });
-
-      // Get team document
-      const teamRef = db.collection('teams').doc(teamId);
-      const teamDoc = await teamRef.get();
-
-      if (!teamDoc.exists) {
-        console.error('Team not found:', teamId);
-        return null;
-      }
-
-      const teamData = teamDoc.data();
-      if (!teamData) {
-        console.error('Team data is empty');
-        return null;
-      }
-
-      // Update team score and stats
-      const newScore = (teamData.score || 0) + finalScore;
-      const newLevelsCompleted = (teamData.levelsCompleted || 0) + 1;
-      const newTimePenalty = (teamData.timePenalty || 0) + timePenalty;
-
-      await teamRef.update({
-        score: newScore,
-        levelsCompleted: newLevelsCompleted,
-        timePenalty: newTimePenalty,
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      });
-
-      // Update leaderboard
-      const leaderboardRef = db.collection('leaderboard').doc(teamId);
-      await leaderboardRef.set(
-        {
-          id: teamId,
-          teamName: teamData.name,
-          groupId: teamData.groupId,
-          score: newScore,
-          levelsCompleted: newLevelsCompleted,
-          totalTimePenalty: newTimePenalty,
-          lastSubmissionAt: admin.firestore.FieldValue.serverTimestamp(),
-        },
-        { merge: true }
-      );
-
-      console.log('Score calculated successfully:', {
-        teamId,
-        newScore,
-        newLevelsCompleted,
-      });
-
-      return null;
-    } catch (error) {
-      console.error('Error calculating score:', error);
-      throw error;
-    }
+    // Do nothing – backend already updates team + leaderboard inside a transaction
+    return null;
   });
 
 /**
- * Cloud Function: Process hint usage and apply penalties
- * Triggers on new hint usage document creation
+ * Cloud Function: (LEGACY) Process hint usage
+ *
+ * Hints (both points-based and time-based) are now handled purely by the
+ * backend scoring logic, which looks at `hint_usage` when a flag is
+ * submitted and applies the correct single penalty.
+ *
+ * To avoid double-applying time penalties, this trigger has been converted
+ * to a NO-OP.
  */
 export const processHintUsage = functions.firestore
   .document('hints/{hintId}')
   .onCreate(async (snap, context) => {
-    try {
-      const hint = snap.data();
-      const { teamId, levelId, penalty } = hint;
+    const hint = snap.data();
+    const { teamId, levelId, penalty } = hint || {};
 
-      console.log('Processing hint usage:', { teamId, levelId, penalty });
+    console.log('processHintUsage (legacy) trigger invoked but penalties are handled by backend scoring. No action taken.', {
+      teamId,
+      levelId,
+      penalty,
+      hintId: context.params.hintId,
+    });
 
-      // Get level to determine hint type
-      const levelDoc = await db.collection('levels').doc(levelId).get();
-      
-      if (!levelDoc.exists) {
-        console.error('Level not found:', levelId);
-        return null;
-      }
-
-      const level = levelDoc.data();
-      if (!level) {
-        console.error('Level data is empty');
-        return null;
-      }
-
-      // Get team document
-      const teamRef = db.collection('teams').doc(teamId);
-      const teamDoc = await teamRef.get();
-
-      if (!teamDoc.exists) {
-        console.error('Team not found:', teamId);
-        return null;
-      }
-
-      // If it's a time-based hint, update team's time penalty immediately
-      if (level.hintType === 'time') {
-        const teamData = teamDoc.data();
-        const currentTimePenalty = teamData?.timePenalty || 0;
-        
-        await teamRef.update({
-          timePenalty: currentTimePenalty + penalty,
-          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-        });
-
-        // Update leaderboard
-        const leaderboardRef = db.collection('leaderboard').doc(teamId);
-        await leaderboardRef.update({
-          totalTimePenalty: admin.firestore.FieldValue.increment(penalty),
-        });
-      }
-
-      console.log('Hint usage processed successfully');
-      return null;
-    } catch (error) {
-      console.error('Error processing hint usage:', error);
-      throw error;
-    }
+    // Do nothing – backend will compute penalties from hint_usage
+    return null;
   });
 
 /**

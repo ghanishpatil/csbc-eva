@@ -20,10 +20,15 @@ export const TeamProgress: React.FC = () => {
 
   const completed = submissions.filter((s) => s.status === 'correct' || s.finalScore > 0).length;
   const score = submissions.reduce((sum, s) => sum + (s.scoreAwarded || s.finalScore || 0), 0);
-  const avgTime = useMemo(() => {
-    const times = submissions.map((s) => s.timePenalty || 0);
-    if (!times.length) return 0;
-    return Math.round(times.reduce((a, b) => a + b, 0) / times.length);
+
+  // Average solve time in minutes based on server-calculated timeTaken for correct submissions
+  const avgSolveTime = useMemo(() => {
+    const correctSubs = submissions.filter(
+      (s) => (s.status === 'correct' || (s.finalScore || 0) > 0) && typeof s.timeTaken === 'number'
+    );
+    if (!correctSubs.length) return 0;
+    const totalTime = correctSubs.reduce((sum, s) => sum + (s.timeTaken || 0), 0);
+    return Math.round(totalTime / correctSubs.length);
   }, [submissions]);
 
   const progressData = useMemo(() => {
@@ -49,7 +54,7 @@ export const TeamProgress: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <MissionStatCard icon={Trophy} label="Total Score" value={score} color="yellow" />
           <MissionStatCard icon={Target} label="Levels Completed" value={`${completed}/${levels.length}`} color="purple" />
-          <MissionStatCard icon={Clock} label="Avg Time Penalty" value={`${avgTime} pts`} color="blue" />
+          <MissionStatCard icon={Clock} label="Avg Solve Time" value={`${avgSolveTime} min`} color="blue" />
         </div>
 
         <TeamProgressGraph data={progressData} />

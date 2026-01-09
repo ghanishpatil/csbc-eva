@@ -347,15 +347,34 @@ export const ActiveMission = () => {
                           teamId: user.teamId,
                           levelId: level.id,
                         });
-                        if (response.success && response.hint) {
-                          toast.success(`Hint #${response.hint.number} unlocked!`);
-                          // Refresh level data
-                          const levelResponse = await getCurrentLevel(user.teamId);
-                          if (levelResponse.success && levelResponse.level) {
-                            setLevel(levelResponse.level);
+
+                        if (!response.success) {
+                          // Backend can return structured statuses
+                          if (response.status === 'no_more_hints') {
+                            toast.error(
+                              response.message || 'Your team has already used all hints for this level.'
+                            );
+                          } else {
+                            toast.error(response.error || 'Failed to request hint');
                           }
-                        } else {
-                          toast.error(response.error || 'Failed to request hint');
+                          return;
+                        }
+
+                        if (response.hint) {
+                          if (response.alreadyUsed) {
+                            toast(
+                              `Hint #${response.hint.number} was already unlocked by your teammate. Showing it again without extra penalty.`,
+                              { icon: '💡' }
+                            );
+                          } else {
+                            toast.success(`Hint #${response.hint.number} unlocked!`);
+                          }
+                        }
+
+                        // Refresh level data so counts and hints list update
+                        const levelResponse = await getCurrentLevel(user.teamId);
+                        if (levelResponse.success && levelResponse.level) {
+                          setLevel(levelResponse.level);
                         }
                       } catch (error: any) {
                         toast.error(error.response?.data?.error || 'Failed to request hint');

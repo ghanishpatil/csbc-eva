@@ -194,6 +194,7 @@ export interface RequestHintRequest {
 
 export interface RequestHintResponse {
   success: boolean;
+  status?: 'no_more_hints' | string;
   hint?: {
     number: number;
     content: string;
@@ -204,6 +205,8 @@ export interface RequestHintResponse {
     time: number;
   };
   hintsRemaining?: number;
+  alreadyUsed?: boolean;
+  message?: string;
   error?: string;
 }
 

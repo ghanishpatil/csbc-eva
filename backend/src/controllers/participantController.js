@@ -728,36 +728,61 @@ export const requestHint = async (req, res) => {
       });
     }
 
-    // Get already used hint numbers
+    // Get already used hint numbers for this team/level (team-scoped hints)
     const hintUsage = await getTeamHintUsage(teamId, levelId, db);
-    const usedHintNumbers = hintUsage.map(h => h.hintNumber);
+    const usedHintNumbers = hintUsage.map((h) => h.hintNumber);
 
     // Find the next available hint (lowest number not yet used)
     const nextHint = allHints
       .sort((a, b) => a.number - b.number)
-      .find(h => !usedHintNumbers.includes(h.number));
+      .find((h) => !usedHintNumbers.includes(h.number));
 
     if (!nextHint) {
       return res.status(400).json({
         success: false,
+        status: 'no_more_hints',
+        message: 'Your team has already used all available hints for this level',
         error: 'No more hints available',
       });
     }
 
-    // Calculate penalty
-    const penalty = calculateHintPenalty([...hintUsage, { hintNumber: nextHint.number }], level);
+    // Use a deterministic document ID to ensure one usage per team/level/hintNumber
+    const usageDocId = `${teamId}_${levelId}_${nextHint.number}`;
+    const usageRef = db.collection('hint_usage').doc(usageDocId);
 
-    // Record hint usage
-    await db.collection('hint_usage').add({
-      teamId,
-      levelId,
-      hintNumber: nextHint.number,
-      hintContent: nextHint.content,
-      usedAt: Date.now(),
-      penalty: level.hintType === 'points' ? penalty.pointsPenalty : penalty.timePenalty,
+    let createdNewUsage = false;
+
+    await db.runTransaction(async (transaction) => {
+      const existing = await transaction.get(usageRef);
+
+      if (existing.exists) {
+        // Hint already recorded for this team/level/number - do NOT charge again
+        createdNewUsage = false;
+        return;
+      }
+
+      createdNewUsage = true;
+
+      transaction.set(usageRef, {
+        id: usageDocId,
+        teamId,
+        levelId,
+        hintNumber: nextHint.number,
+        hintContent: nextHint.content,
+        usedAt: Date.now(),
+      });
     });
 
-    console.log(`[ParticipantController] Hint requested - Team: ${teamId}, Level: ${levelId}, Hint: #${nextHint.number}`);
+    // Recompute hint usage after potential new record (for consistent penalties)
+    const updatedHintUsage = createdNewUsage
+      ? [...hintUsage, { hintNumber: nextHint.number }]
+      : hintUsage;
+
+    const penalty = calculateHintPenalty(updatedHintUsage, level);
+
+    console.log(
+      `[ParticipantController] Hint requested - Team: ${teamId}, Level: ${levelId}, Hint: #${nextHint.number}, createdNewUsage=${createdNewUsage}`
+    );
 
     return res.status(200).json({
       success: true,
@@ -767,10 +792,14 @@ export const requestHint = async (req, res) => {
       },
       penalty: {
         type: level.hintType,
-        points: penalty.pointsPenalty,
-        time: penalty.timePenalty,
+        // Only charge incremental penalty when a new usage was created
+        points: createdNewUsage ? penalty.pointsPenalty : 0,
+        time: createdNewUsage ? penalty.timePenalty : 0,
       },
-      hintsRemaining: hintsAvailable - (hintsUsed + 1),
+      hintsRemaining: createdNewUsage
+        ? hintsAvailable - (hintsUsed + 1)
+        : hintsAvailable - hintsUsed,
+      alreadyUsed: !createdNewUsage,
     });
   } catch (error) {
     console.error('[ParticipantController] Request hint error:', error);

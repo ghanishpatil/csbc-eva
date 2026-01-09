@@ -9,11 +9,14 @@ import { captainApiClient, GroupOverview } from '@/captain/api/captainApi';
 import { Users, Eye, Grid3x3 } from 'lucide-react';
 import { TeamPerformanceCard } from '@/captain/components/TeamPerformanceCard';
 import toast from 'react-hot-toast';
+import { collection, onSnapshot, query, where } from 'firebase/firestore';
+import { db } from '@/config/firebase';
 
 export const TeamsPerformance: React.FC = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [groupData, setGroupData] = useState<GroupOverview | null>(null);
+  const [groupId, setGroupId] = useState<string | null>(null);
 
   useEffect(() => {
     loadGroupData();
@@ -24,6 +27,7 @@ export const TeamsPerformance: React.FC = () => {
       setLoading(true);
       const data = await captainApiClient.getGroupOverview();
       setGroupData(data);
+      setGroupId(data.groupId);
     } catch (error: any) {
       console.error('Error loading group data:', error);
       toast.error(error.response?.data?.error || 'Failed to load teams data');
@@ -31,6 +35,35 @@ export const TeamsPerformance: React.FC = () => {
       setLoading(false);
     }
   };
+
+  // Real-time updates for teams in this group
+  useEffect(() => {
+    if (!groupId) return;
+
+    const q = query(collection(db, 'teams'), where('groupId', '==', groupId));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const teams = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as GroupOverview['teams'];
+
+      setGroupData((prev) =>
+        prev
+          ? {
+              ...prev,
+              teams,
+              stats: {
+                ...prev.stats,
+                totalTeams: teams.length,
+                totalScore: teams.reduce((sum, team: any) => sum + (team.score || 0), 0),
+              },
+            }
+          : prev
+      );
+    });
+
+    return () => unsubscribe();
+  }, [groupId]);
 
   if (loading) {
     return (
@@ -96,6 +129,7 @@ export const TeamsPerformance: React.FC = () => {
                   <th className="text-left py-3 px-4 text-cyber-text-secondary font-semibold">Team</th>
                   <th className="text-right py-3 px-4 text-cyber-text-secondary font-semibold">Score</th>
                   <th className="text-right py-3 px-4 text-cyber-text-secondary font-semibold">Levels</th>
+                  <th className="text-right py-3 px-4 text-cyber-text-secondary font-semibold">Hints Used</th>
                   <th className="text-right py-3 px-4 text-cyber-text-secondary font-semibold">Efficiency</th>
                   <th className="text-center py-3 px-4 text-cyber-text-secondary font-semibold">Actions</th>
                 </tr>
@@ -128,6 +162,9 @@ export const TeamsPerformance: React.FC = () => {
                       </td>
                       <td className="py-3 px-4 text-right text-cyber-text-primary">
                         {team.levelsCompleted || 0}
+                      </td>
+                      <td className="py-3 px-4 text-right text-cyber-text-primary">
+                        {team.hintsUsed ?? 0}
                       </td>
                       <td className="py-3 px-4 text-right">
                         <span className="text-cyber-neon-green">{efficiency}</span>

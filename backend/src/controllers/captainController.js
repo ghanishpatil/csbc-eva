@@ -50,14 +50,30 @@ export const getGroupOverview = async (req, res) => {
       ...doc.data(),
     }));
 
+    // Aggregate per-team hint usage (sum of hintsUsed across all submissions)
+    const hintsPerTeam = {};
+    submissions.forEach((s) => {
+      const teamId = s.teamId;
+      if (!teamId) return;
+      const used = s.hintsUsed || 0;
+      if (!used) return;
+      hintsPerTeam[teamId] = (hintsPerTeam[teamId] || 0) + used;
+    });
+
+    // Attach hintsUsed to each team object (total hints this team has used in the group)
+    const teamsWithHints = teams.map((team) => ({
+      ...team,
+      hintsUsed: hintsPerTeam[team.id] || 0,
+    }));
+
     // Calculate stats
-    const totalScore = teams.reduce((sum, team) => sum + (team.score || 0), 0);
+    const totalScore = teamsWithHints.reduce((sum, team) => sum + (team.score || 0), 0);
     const correctSubmissions = submissions.filter(s => s.status === 'correct');
     const solves = correctSubmissions.length;
-    const hintsUsed = submissions.reduce((sum, s) => sum + (s.hintsUsed || 0), 0);
+    const totalHintsUsed = Object.values(hintsPerTeam).reduce((sum, v) => sum + v, 0);
 
     // Calculate solve matrix for heatmap (team x level)
-    const solveMatrix = teams.map(team => {
+    const solveMatrix = teamsWithHints.map(team => {
       const teamSubmissions = submissions.filter(s => s.teamId === team.id && s.status === 'correct');
       return levels.map(level => {
         const solved = teamSubmissions.some(s => s.levelId === level.id);
@@ -70,13 +86,13 @@ export const getGroupOverview = async (req, res) => {
       data: {
         groupId: captain.groupId,
         groupName: captain.groupData.name || `Group ${captain.groupId}`,
-        teams,
+        teams: teamsWithHints,
         levels,
         solveMatrix, // Add solve matrix for heatmap
         stats: {
           totalScore,
           solves,
-          hintsUsed,
+          hintsUsed: totalHintsUsed,
           totalTeams: teams.length,
           totalLevels: levels.length,
         },

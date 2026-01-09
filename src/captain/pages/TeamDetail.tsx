@@ -108,7 +108,7 @@ export const TeamDetailPage: React.FC = () => {
               <Clock className="h-8 w-8 text-cyber-neon-blue" />
               <div>
                 <div className="text-sm text-cyber-text-secondary">Avg Solve Time</div>
-                <div className="text-2xl font-bold text-cyber-neon-blue">{metrics.avgSolveTime}s</div>
+                <div className="text-2xl font-bold text-cyber-neon-blue">{metrics.avgSolveTime} min</div>
               </div>
             </div>
           </CyberCard>
@@ -151,7 +151,7 @@ export const TeamDetailPage: React.FC = () => {
                     </div>
                     <div className="text-right">
                       <div className="text-sm text-cyber-text-secondary">Time</div>
-                      <div className="text-cyber-neon-blue">{solve.timeTaken}s</div>
+                      <div className="text-cyber-neon-blue">{solve.timeTaken} min</div>
                     </div>
                     {solve.hintsUsed > 0 && (
                       <div className="text-right">

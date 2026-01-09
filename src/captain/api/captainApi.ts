@@ -45,6 +45,7 @@ export interface Team {
   groupId: string;
   score: number;
   levelsCompleted: number;
+  hintsUsed?: number;
   status?: 'waiting' | 'at_location' | 'solving' | 'moving';
   members?: string[];
 }

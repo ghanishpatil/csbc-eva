@@ -253,6 +253,8 @@ export const submitFlag = async (req, res) => {
       if (transactionError.message && transactionError.message.includes('DUPLICATE_SUBMISSION')) {
         return res.status(400).json({
           success: false,
+          status: 'already_completed',
+          message: 'This level has already been completed by your team',
           error: 'This level has already been completed by your team',
         });
       }

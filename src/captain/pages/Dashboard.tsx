@@ -287,6 +287,7 @@ export const Dashboard: React.FC = () => {
                   <th className="text-left py-3 px-4 text-cyber-text-secondary font-semibold">Team</th>
                   <th className="text-right py-3 px-4 text-cyber-text-secondary font-semibold">Score</th>
                   <th className="text-right py-3 px-4 text-cyber-text-secondary font-semibold">Levels</th>
+                  <th className="text-right py-3 px-4 text-cyber-text-secondary font-semibold">Hints Used</th>
                   <th className="text-right py-3 px-4 text-cyber-text-secondary font-semibold">Status</th>
                 </tr>
               </thead>
@@ -296,6 +297,7 @@ export const Dashboard: React.FC = () => {
                     <td className="py-3 px-4 text-cyber-text-primary font-medium">{team.name}</td>
                     <td className="py-3 px-4 text-right text-cyber-neon-yellow font-bold">{team.score || 0}</td>
                     <td className="py-3 px-4 text-right text-cyber-text-primary">{team.levelsCompleted || 0}</td>
+                    <td className="py-3 px-4 text-right text-cyber-text-primary">{team.hintsUsed ?? 0}</td>
                     <td className="py-3 px-4 text-right">
                       <span className={`px-2 py-1 rounded text-xs ${
                         (team.levelsCompleted || 0) > 0

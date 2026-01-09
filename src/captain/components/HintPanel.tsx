@@ -1,47 +1,29 @@
-import { useState } from 'react';
-import { NeonButton } from '@/components/ui/NeonButton';
-import { captainApi } from '@/captain/api/captainApi';
-import { toast } from 'react-hot-toast';
 import { Clock, MinusCircle } from 'lucide-react';
+import { CyberCard } from '@/components/ui/CyberCard';
 
 interface HintPanelProps {
-  teamId: string;
-  levelId: string;
   pointsHintCost?: number;
   timePenaltyMinutes?: number;
-  onHint?: () => void;
+  hintsAvailable?: number;
+  hintsUsed?: number;
 }
 
 export const HintPanel: React.FC<HintPanelProps> = ({
-  teamId,
-  levelId,
   pointsHintCost = 50,
   timePenaltyMinutes = 5,
-  onHint,
+  hintsAvailable,
+  hintsUsed,
 }) => {
-  const [loading, setLoading] = useState(false);
-
-  const requestHint = async (type: 'points' | 'time') => {
-    setLoading(true);
-    try {
-      // Note: Hint request should use participant API, not captain API
-      // This component may need refactoring to use the correct API endpoint
-      await captainApi.post('/api/participant/request-hint', { teamId, levelId, hintType: type });
-      toast.success('Hint requested');
-      onHint?.();
-    } catch (error: any) {
-      toast.error(error?.response?.data?.message || 'Hint request failed');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
-    <div className="cyber-card">
+    <CyberCard>
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="text-lg font-cyber font-bold text-cyber-text-primary">Need a hint?</h3>
-          <p className="text-sm text-cyber-text-secondary">Choose your penalty type</p>
+          <h3 className="text-lg font-cyber font-bold text-cyber-text-primary">
+            Hint System (Read‑only)
+          </h3>
+          <p className="text-sm text-cyber-text-secondary">
+            Hints are requested by players in the mission view. Captains can monitor costs and usage here.
+          </p>
         </div>
       </div>
 
@@ -52,9 +34,6 @@ export const HintPanel: React.FC<HintPanelProps> = ({
             <div className="text-sm text-cyber-text-primary font-semibold">Points-based hint</div>
           </div>
           <p className="text-sm text-cyber-text-secondary mb-3">Penalty: -{pointsHintCost} points</p>
-          <NeonButton color="red" onClick={() => requestHint('points')} disabled={loading} size="sm">
-            Request points hint
-          </NeonButton>
         </div>
 
         <div className="bg-cyber-bg-darker border border-cyber-border rounded-xl p-4">
@@ -63,12 +42,18 @@ export const HintPanel: React.FC<HintPanelProps> = ({
             <div className="text-sm text-cyber-text-primary font-semibold">Time-based hint</div>
           </div>
           <p className="text-sm text-cyber-text-secondary mb-3">Penalty: +{timePenaltyMinutes} minutes</p>
-          <NeonButton color="blue" onClick={() => requestHint('time')} disabled={loading} size="sm">
-            Request time hint
-          </NeonButton>
         </div>
       </div>
-    </div>
+
+      {typeof hintsAvailable === 'number' && (
+        <div className="mt-4 text-xs text-cyber-text-secondary">
+          Hints used by this team on the current level:{' '}
+          <span className="text-cyber-neon-yellow">
+            {hintsUsed ?? 0} / {hintsAvailable}
+          </span>
+        </div>
+      )}
+    </CyberCard>
   );
 };
 
