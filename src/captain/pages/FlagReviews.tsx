@@ -6,7 +6,6 @@ import { CyberCard } from '@/components/ui/CyberCard';
 import { SectionTitle } from '@/components/ui/SectionTitle';
 import { NeonButton } from '@/components/ui/NeonButton';
 import { captainApiClient, type ManualSubmission } from '@/captain/api/captainApi';
-import { useAuth } from '@/hooks/useAuth';
 import { FileText, CheckCircle2, XCircle, Clock, User, Target } from 'lucide-react';
 import toast from 'react-hot-toast';
 
