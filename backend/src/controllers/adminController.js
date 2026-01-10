@@ -32,12 +32,129 @@ export const updateLevel = async (req, res) => {
       });
     }
 
-    // Update level
     const db = getFirestore();
-    await db.collection('levels').doc(levelId).update({
-      ...updates,
-      updatedAt: Date.now(),
-    });
+
+    // CRITICAL: Use transaction to atomically update level and indices (prevents race conditions)
+    const newGroupId = updates.groupId !== undefined ? updates.groupId : level.groupId;
+    const newNumber = updates.number !== undefined ? updates.number : level.number;
+    const oldGroupId = level.groupId;
+    const oldNumber = level.number;
+    const oldQrCodeId = level.qrCodeId;
+    const newQrCodeId = updates.qrCodeId !== undefined ? updates.qrCodeId : oldQrCodeId;
+    
+    try {
+      await db.runTransaction(async (transaction) => {
+        // If groupId or number is being changed, update the level index atomically
+        if (updates.groupId !== undefined || updates.number !== undefined) {
+          if (newGroupId && newNumber) {
+            const oldLevelIndexId = `${oldGroupId}_${oldNumber}`;
+            const newLevelIndexId = `${newGroupId}_${newNumber}`;
+            const oldLevelIndexRef = db.collection('level_index').doc(oldLevelIndexId);
+            const newLevelIndexRef = db.collection('level_index').doc(newLevelIndexId);
+            
+            // If the index ID is changing, check if new one exists
+            if (oldLevelIndexId !== newLevelIndexId) {
+              const newLevelIndexDoc = await transaction.get(newLevelIndexRef);
+              if (newLevelIndexDoc.exists) {
+                throw new Error(`DUPLICATE_LEVEL: Level ${newNumber} already exists in this group`);
+              }
+              
+              // Delete old index if it exists and create new one atomically
+              const oldLevelIndexDoc = await transaction.get(oldLevelIndexRef);
+              if (oldLevelIndexDoc.exists && oldLevelIndexDoc.data().levelId === levelId) {
+                transaction.delete(oldLevelIndexRef);
+              }
+              transaction.set(newLevelIndexRef, {
+                levelId,
+                groupId: newGroupId,
+                number: newNumber,
+                createdAt: Date.now(),
+                updatedAt: Date.now(),
+              });
+            } else {
+              // Same index ID, just update it
+              const existingIndexDoc = await transaction.get(newLevelIndexRef);
+              if (existingIndexDoc.exists && existingIndexDoc.data().levelId === levelId) {
+                transaction.update(newLevelIndexRef, {
+                  updatedAt: Date.now(),
+                });
+              } else if (!existingIndexDoc.exists) {
+                // Index doesn't exist, create it (for older levels)
+                transaction.set(newLevelIndexRef, {
+                  levelId,
+                  groupId: newGroupId,
+                  number: newNumber,
+                  createdAt: Date.now(),
+                  updatedAt: Date.now(),
+                });
+              }
+            }
+          }
+        }
+        
+        // If QR Code is being changed, update QR index atomically
+        if (updates.qrCodeId !== undefined) {
+          if (newQrCodeId && newQrCodeId.trim()) {
+            const newQrIndexId = `qr_${newQrCodeId}`;
+            const newQrIndexRef = db.collection('qr_index').doc(newQrIndexId);
+            
+            // Check if new QR index already exists (for a different level)
+            const newQrIndexDoc = await transaction.get(newQrIndexRef);
+            if (newQrIndexDoc.exists && newQrIndexDoc.data().levelId !== levelId) {
+              throw new Error(`DUPLICATE_QR: QR Code ID "${newQrCodeId}" is already in use by another level`);
+            }
+            
+            // Delete old QR index if it exists and is different
+            if (oldQrCodeId && oldQrCodeId !== newQrCodeId) {
+              const oldQrIndexId = `qr_${oldQrCodeId}`;
+              const oldQrIndexRef = db.collection('qr_index').doc(oldQrIndexId);
+              const oldQrIndexDoc = await transaction.get(oldQrIndexRef);
+              if (oldQrIndexDoc.exists && oldQrIndexDoc.data().levelId === levelId) {
+                transaction.delete(oldQrIndexRef);
+              }
+            }
+            
+            // Create or update new QR index
+            transaction.set(newQrIndexRef, {
+              levelId,
+              qrCodeId: newQrCodeId,
+              createdAt: Date.now(),
+              updatedAt: Date.now(),
+            });
+          } else if (oldQrCodeId) {
+            // QR code is being removed
+            const oldQrIndexId = `qr_${oldQrCodeId}`;
+            const oldQrIndexRef = db.collection('qr_index').doc(oldQrIndexId);
+            const oldQrIndexDoc = await transaction.get(oldQrIndexRef);
+            if (oldQrIndexDoc.exists && oldQrIndexDoc.data().levelId === levelId) {
+              transaction.delete(oldQrIndexRef);
+            }
+          }
+        }
+        
+        // Update the actual level document
+        const levelRef = db.collection('levels').doc(levelId);
+        transaction.update(levelRef, {
+          ...updates,
+          updatedAt: Date.now(),
+        });
+      });
+    } catch (transactionError) {
+      // Handle specific transaction errors
+      if (transactionError.message && transactionError.message.startsWith('DUPLICATE_LEVEL:')) {
+        return res.status(400).json({
+          success: false,
+          error: transactionError.message.replace('DUPLICATE_LEVEL: ', ''),
+        });
+      }
+      if (transactionError.message && transactionError.message.startsWith('DUPLICATE_QR:')) {
+        return res.status(400).json({
+          success: false,
+          error: transactionError.message.replace('DUPLICATE_QR: ', ''),
+        });
+      }
+      throw transactionError;
+    }
 
     console.log(`[AdminController] Level updated: ${levelId}`);
 
@@ -466,11 +583,90 @@ export const createLevel = async (req, res) => {
     const levelData = req.body;
     const db = getFirestore();
     
-    const levelRef = await db.collection('levels').add({
-      ...levelData,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    });
+    // CRITICAL: Validate required fields
+    if (!levelData.groupId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Group ID is required',
+      });
+    }
+    
+    if (!levelData.number || levelData.number < 1) {
+      return res.status(400).json({
+        success: false,
+        error: 'Level number is required and must be at least 1',
+      });
+    }
+    
+    // CRITICAL: Use Firestore transaction to atomically check and create (prevents race conditions)
+    // This ensures that even if two admins try to create simultaneously, only one will succeed
+    let levelRef;
+    try {
+      await db.runTransaction(async (transaction) => {
+        // Create deterministic document IDs for unique constraint indices
+        const levelIndexId = `${levelData.groupId}_${levelData.number}`;
+        const levelIndexRef = db.collection('level_index').doc(levelIndexId);
+        
+        // Check if level index already exists (atomic read within transaction)
+        const levelIndexDoc = await transaction.get(levelIndexRef);
+        if (levelIndexDoc.exists) {
+          throw new Error(`DUPLICATE_LEVEL: Level ${levelData.number} already exists in this group`);
+        }
+        
+        // Check QR Code uniqueness if provided (using another index)
+        let qrIndexRef = null;
+        if (levelData.qrCodeId && levelData.qrCodeId.trim()) {
+          const qrIndexId = `qr_${levelData.qrCodeId}`;
+          qrIndexRef = db.collection('qr_index').doc(qrIndexId);
+          const qrIndexDoc = await transaction.get(qrIndexRef);
+          if (qrIndexDoc.exists) {
+            throw new Error(`DUPLICATE_QR: QR Code ID "${levelData.qrCodeId}" is already in use`);
+          }
+        }
+        
+        // Create the actual level document (auto-generated ID)
+        levelRef = db.collection('levels').doc();
+        const levelDocData = {
+          ...levelData,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        };
+        
+        // Atomically create all documents in the transaction
+        transaction.set(levelRef, levelDocData);
+        transaction.set(levelIndexRef, {
+          levelId: levelRef.id,
+          groupId: levelData.groupId,
+          number: levelData.number,
+          createdAt: Date.now(),
+        });
+        
+        // Create QR index if QR code provided
+        if (qrIndexRef) {
+          transaction.set(qrIndexRef, {
+            levelId: levelRef.id,
+            qrCodeId: levelData.qrCodeId,
+            createdAt: Date.now(),
+          });
+        }
+      });
+    } catch (transactionError) {
+      // Handle specific transaction errors
+      if (transactionError.message && transactionError.message.startsWith('DUPLICATE_LEVEL:')) {
+        return res.status(400).json({
+          success: false,
+          error: transactionError.message.replace('DUPLICATE_LEVEL: ', ''),
+        });
+      }
+      if (transactionError.message && transactionError.message.startsWith('DUPLICATE_QR:')) {
+        return res.status(400).json({
+          success: false,
+          error: transactionError.message.replace('DUPLICATE_QR: ', ''),
+        });
+      }
+      // Re-throw other errors
+      throw transactionError;
+    }
     
     return res.status(201).json({
       success: true,
@@ -495,7 +691,41 @@ export const deleteLevel = async (req, res) => {
     const { levelId } = req.params;
     const db = getFirestore();
     
-    await db.collection('levels').doc(levelId).delete();
+    // CRITICAL: Get level data first to clean up indices atomically
+    const level = await getLevel(levelId);
+    if (!level) {
+      return res.status(404).json({
+        success: false,
+        error: 'Level not found',
+      });
+    }
+    
+    // CRITICAL: Use transaction to atomically delete level and all related indices
+    await db.runTransaction(async (transaction) => {
+      // Delete the level document
+      const levelRef = db.collection('levels').doc(levelId);
+      transaction.delete(levelRef);
+      
+      // Delete level index if it exists
+      if (level.groupId && level.number) {
+        const levelIndexId = `${level.groupId}_${level.number}`;
+        const levelIndexRef = db.collection('level_index').doc(levelIndexId);
+        const levelIndexDoc = await transaction.get(levelIndexRef);
+        if (levelIndexDoc.exists && levelIndexDoc.data().levelId === levelId) {
+          transaction.delete(levelIndexRef);
+        }
+      }
+      
+      // Delete QR index if it exists
+      if (level.qrCodeId && level.qrCodeId.trim()) {
+        const qrIndexId = `qr_${level.qrCodeId}`;
+        const qrIndexRef = db.collection('qr_index').doc(qrIndexId);
+        const qrIndexDoc = await transaction.get(qrIndexRef);
+        if (qrIndexDoc.exists && qrIndexDoc.data().levelId === levelId) {
+          transaction.delete(qrIndexRef);
+        }
+      }
+    });
     
     return res.status(200).json({
       success: true,

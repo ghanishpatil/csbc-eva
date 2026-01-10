@@ -83,10 +83,20 @@ const AdminSubmissions = () => {
     );
 
     const submissionsUnsubscribe = onSnapshot(q, (snapshot) => {
-      const submissionsData = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Submission[];
+      const submissionsData = snapshot.docs.map((doc) => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          // Ensure numeric types for calculations
+          hintsUsed: Number(data.hintsUsed || 0),
+          finalScore: Number(data.finalScore || 0),
+          baseScore: Number(data.baseScore || 0),
+          pointDeduction: Number(data.pointDeduction || 0),
+          timePenalty: Number(data.timePenalty || 0),
+          timeTaken: Number(data.timeTaken || 0),
+        };
+      }) as Submission[];
       setSubmissions(submissionsData);
       setLoading(false);
     });
@@ -139,11 +149,11 @@ const AdminSubmissions = () => {
 
   const stats = {
     total: submissions.length,
-    totalScore: submissions.reduce((sum, sub) => sum + (sub.finalScore || 0), 0),
+    totalScore: submissions.reduce((sum, sub) => sum + Number(sub.finalScore || 0), 0),
     averageScore: submissions.length
-      ? Math.round(submissions.reduce((sum, sub) => sum + (sub.finalScore || 0), 0) / submissions.length)
+      ? Math.round(submissions.reduce((sum, sub) => sum + Number(sub.finalScore || 0), 0) / submissions.length)
       : 0,
-    totalHints: submissions.reduce((sum, sub) => sum + (sub.hintsUsed || 0), 0),
+    totalHints: submissions.reduce((sum, sub) => sum + Number(sub.hintsUsed || 0), 0),
     uniqueTeams: new Set(submissions.map(s => s.teamId)).size,
   };
 
@@ -204,7 +214,7 @@ const AdminSubmissions = () => {
             <Target className="h-5 w-5 text-orange-400" />
             <span className="text-gray-400 text-sm">Hints Used</span>
           </div>
-          <p className="text-3xl font-bold text-orange-400">{stats.totalHints}</p>
+          <p className="text-3xl font-bold text-orange-400">{stats.totalHints.toLocaleString()}</p>
         </CyberCard>
       </div>
 

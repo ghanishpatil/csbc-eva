@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import { useAuth } from '@/hooks/useAuth';
-import { getCurrentLevel, submitFlag, requestHint } from '@/api/participantApi';
+import { getCurrentLevel, submitFlag, requestHint, submitManualFlag, getTeamManualSubmissions, type ManualSubmission } from '@/api/participantApi';
 import { Target, FileText, Download, AlertCircle, ArrowLeft, Flag, Lightbulb, Pause, StopCircle } from 'lucide-react';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { CyberCard } from '@/components/ui/CyberCard';
@@ -25,6 +25,10 @@ export const ActiveMission = () => {
   const [attemptsRemaining, setAttemptsRemaining] = useState(5);
   const [requestingHint, setRequestingHint] = useState(false);
   const [eventConfig, setEventConfig] = useState<EventConfig | null>(null);
+  const [manualFlag, setManualFlag] = useState('');
+  const [submittingManual, setSubmittingManual] = useState(false);
+  const [manualSubmissions, setManualSubmissions] = useState<ManualSubmission[]>([]);
+  const [showManualSection, setShowManualSection] = useState(false);
 
   // Subscribe to event config for real-time event status
   useEffect(() => {
@@ -69,6 +73,21 @@ export const ActiveMission = () => {
     };
 
     fetchLevel();
+    
+    // Fetch manual submissions for the team
+    const fetchManualSubmissions = async () => {
+      if (!user?.teamId) return;
+      try {
+        const response = await getTeamManualSubmissions(user.teamId);
+        if (response.success && response.data) {
+          setManualSubmissions(response.data.submissions);
+        }
+      } catch (error) {
+        console.error('Error fetching manual submissions:', error);
+      }
+    };
+    
+    fetchManualSubmissions();
 
     // Real-time listener for team changes - use Firestore data directly
     // FIXED: Single source of truth for timer - only Firestore updates
@@ -460,6 +479,131 @@ export const ActiveMission = () => {
             >
               {submitting ? 'Submitting...' : isEventStopped ? 'Event Ended' : isEventPaused ? 'Event Paused' : 'Submit Flag'}
             </NeonButton>
+          </div>
+        </CyberCard>
+
+        {/* Manual Flag Submission */}
+        <CyberCard>
+          <SectionTitle icon={Flag} title="MANUAL FLAG SUBMISSION" />
+          
+          <div className="space-y-4">
+            <div className="bg-cyber-bg-darker border border-cyber-border rounded-xl p-4">
+              <p className="text-cyber-text-secondary text-sm mb-4">
+                Submit a flag for manual review by your group captain. Your progression will be locked until a decision is made.
+              </p>
+              
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-cyber-text-secondary text-sm mb-2">
+                    FLAG FORMAT: {level.flagFormat || 'CSBC{...}'}
+                  </label>
+                  <input
+                    type="text"
+                    value={manualFlag}
+                    onChange={(e) => setManualFlag(e.target.value)}
+                    placeholder="Enter flag for manual review (e.g., CSBC{your_flag_here})"
+                    className="w-full px-4 py-3 bg-cyber-bg border border-cyber-border rounded-lg text-cyber-text-primary focus:outline-none focus:ring-2 focus:ring-cyber-neon-purple placeholder:text-cyber-text-secondary font-mono"
+                    disabled={submittingManual || isEventStopped}
+                  />
+                </div>
+                
+                <NeonButton
+                  onClick={async () => {
+                    if (!user?.teamId || !level || !manualFlag.trim()) return;
+                    
+                    setSubmittingManual(true);
+                    try {
+                      const response = await submitManualFlag({
+                        teamId: user.teamId,
+                        levelId: level.id,
+                        flag: manualFlag.trim(),
+                      });
+                      
+                      if (response.success) {
+                        toast.success('Flag submitted for review. Waiting for captain approval.');
+                        setManualFlag('');
+                        // Refresh submissions list
+                        const submissionsResponse = await getTeamManualSubmissions(user.teamId);
+                        if (submissionsResponse.success && submissionsResponse.data) {
+                          setManualSubmissions(submissionsResponse.data.submissions);
+                        }
+                      } else {
+                        toast.error(response.error || 'Failed to submit flag for review');
+                      }
+                    } catch (error: any) {
+                      toast.error(error.response?.data?.error || 'Failed to submit flag for review');
+                    } finally {
+                      setSubmittingManual(false);
+                    }
+                  }}
+                  disabled={submittingManual || !manualFlag.trim() || isEventStopped}
+                  className="w-full"
+                  color="purple"
+                  icon={Flag}
+                >
+                  {submittingManual ? 'Submitting...' : 'Submit for Manual Review'}
+                </NeonButton>
+              </div>
+            </div>
+            
+            {/* Show pending submissions for this level */}
+            {manualSubmissions.filter(s => s.levelId === level.id).length > 0 && (
+              <div className="space-y-2">
+                <div className="text-cyber-text-secondary text-sm font-medium">Your Submissions:</div>
+                {manualSubmissions
+                  .filter(s => s.levelId === level.id)
+                  .map((submission) => (
+                    <div
+                      key={submission.id}
+                      className={`bg-cyber-bg-darker border rounded-xl p-3 ${
+                        submission.status === 'approved'
+                          ? 'border-cyber-neon-green/50'
+                          : submission.status === 'rejected'
+                          ? 'border-cyber-neon-red/50'
+                          : 'border-cyber-neon-yellow/50'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="text-cyber-text-primary font-mono text-sm">
+                            {submission.flag}
+                          </div>
+                          <div className="text-cyber-text-secondary text-xs mt-1">
+                            Submitted: {new Date(submission.submittedAt).toLocaleString()}
+                          </div>
+                          {submission.reviewedAt && (
+                            <div className="text-cyber-text-secondary text-xs">
+                              Reviewed: {new Date(submission.reviewedAt).toLocaleString()} by {submission.reviewedByName}
+                            </div>
+                          )}
+                        </div>
+                        <div>
+                          {submission.status === 'pending' && (
+                            <span className="px-2 py-1 bg-cyber-neon-yellow/20 text-cyber-neon-yellow rounded text-xs font-medium">
+                              PENDING
+                            </span>
+                          )}
+                          {submission.status === 'approved' && (
+                            <span className="px-2 py-1 bg-cyber-neon-green/20 text-cyber-neon-green rounded text-xs font-medium">
+                              APPROVED {submission.scoreAwarded ? `(+${submission.scoreAwarded} pts)` : ''}
+                            </span>
+                          )}
+                          {submission.status === 'rejected' && (
+                            <span className="px-2 py-1 bg-cyber-neon-red/20 text-cyber-neon-red rounded text-xs font-medium">
+                              REJECTED
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      {submission.rejectionReason && (
+                        <div className="mt-2 text-cyber-text-secondary text-xs">
+                          Reason: {submission.rejectionReason}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+              </div>
+            )}
           </div>
         </CyberCard>
 

@@ -14,6 +14,7 @@ import captainRoutes from './routes/captain.js';
 import participantRoutes from './routes/participant.js';
 import missionRoutes from './routes/mission.js';
 import authRoutes from './routes/auth.js';
+import manualSubmissionsRoutes from './routes/manualSubmissions.js';
 import { getHealthStatus } from './controllers/healthController.js';
 
 // Load environment variables
@@ -211,6 +212,7 @@ app.use('/api/captain', captainRoutes);
 app.use('/api/participant', participantRoutes);
 app.use('/api/mission', missionRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/manual-submissions', manualSubmissionsRoutes);
 
 // ============================================================================
 // ERROR HANDLING

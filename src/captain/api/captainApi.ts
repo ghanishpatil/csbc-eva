@@ -89,6 +89,7 @@ export interface SubmissionLog {
   teamId: string;
   teamName: string;
   levelId: string;
+  levelTitle?: string;
   status: 'correct' | 'incorrect';
   scoreAwarded: number;
   hintsUsed: number;
@@ -128,6 +129,51 @@ export const captainApiClient = {
   sendAnnouncement: async (message: string): Promise<void> => {
     await captainApi.post('/api/captain/announce', { message });
   },
+
+  /**
+   * Get manual submissions for a team in captain's group
+   */
+  getTeamManualSubmissions: async (teamId: string): Promise<{ submissions: ManualSubmission[]; count: number }> => {
+    const response = await captainApi.get('/api/manual-submissions/team', {
+      params: { teamId },
+    });
+    return response.data.data;
+  },
+
+  /**
+   * Approve a manual submission
+   */
+  approveManualSubmission: async (submissionId: string): Promise<{ success: boolean; message?: string; data?: { submissionId: string; scoreAwarded: number } }> => {
+    const response = await captainApi.post(`/api/manual-submissions/${submissionId}/approve`);
+    return response.data;
+  },
+
+  /**
+   * Reject a manual submission
+   */
+  rejectManualSubmission: async (submissionId: string, reason?: string): Promise<{ success: boolean; message?: string }> => {
+    const response = await captainApi.post(`/api/manual-submissions/${submissionId}/reject`, { reason });
+    return response.data;
+  },
 };
+
+export interface ManualSubmission {
+  id: string;
+  teamId: string;
+  teamName: string;
+  levelId: string;
+  levelTitle: string;
+  flag: string;
+  submittedBy: string;
+  submittedByName: string;
+  submittedAt: number;
+  status: 'pending' | 'approved' | 'rejected';
+  reviewedBy?: string;
+  reviewedByName?: string;
+  reviewedAt?: number;
+  decision?: 'approved' | 'rejected';
+  rejectionReason?: string;
+  scoreAwarded?: number;
+}
 
 export default captainApiClient;

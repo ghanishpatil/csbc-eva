@@ -76,7 +76,9 @@ export const SubmissionLogs: React.FC = () => {
                         {new Date(log.submittedAt).toLocaleString()}
                       </td>
                       <td className="py-3 px-4 text-cyber-text-primary font-medium">{log.teamName}</td>
-                      <td className="py-3 px-4 text-cyber-text-primary">Level {log.levelId}</td>
+                      <td className="py-3 px-4 text-cyber-text-primary font-medium">
+                        {log.levelTitle || `Level ${log.levelId?.substring(0, 8) || 'Unknown'}`}
+                      </td>
                       <td className="py-3 px-4 text-center">
                         {log.status === 'correct' ? (
                           <span className="flex items-center justify-center space-x-1 text-cyber-neon-green">

@@ -10,8 +10,13 @@ interface HeatmapProps {
 export const Heatmap: React.FC<HeatmapProps> = ({ groupData }) => {
   const { teams, levels, solveMatrix } = groupData;
 
-  // Use solve matrix from backend, or create empty matrix if not provided
-  const matrix = solveMatrix || teams.map(() => levels.map(() => 0));
+  // Ensure matrix dimensions match teams and levels
+  // If solveMatrix exists but dimensions don't match, recalculate it
+  let matrix = solveMatrix;
+  if (!matrix || matrix.length !== teams.length || (teams.length > 0 && matrix[0]?.length !== levels.length)) {
+    // Create matrix: each team row, each level column
+    matrix = teams.map(() => levels.map(() => 0));
+  }
   
   if (teams.length === 0 || levels.length === 0) {
     return (
@@ -41,12 +46,13 @@ export const Heatmap: React.FC<HeatmapProps> = ({ groupData }) => {
                 <th className="sticky left-0 z-10 bg-cyber-bg-card border border-cyber-border px-3 py-2 text-left text-xs text-cyber-text-secondary font-semibold">
                   Team
                 </th>
-                {levels.map((level, idx) => (
+                  {levels.map((level, idx) => (
                   <th
-                    key={level.id}
+                    key={level.id || idx}
                     className="border border-cyber-border px-2 py-2 text-center text-xs text-cyber-text-secondary font-semibold min-w-[60px]"
+                    title={level.title || `Level ${level.number || idx + 1}`}
                   >
-                    L{idx + 1}
+                    L{level.number || idx + 1}
                   </th>
                 ))}
               </tr>
@@ -57,19 +63,22 @@ export const Heatmap: React.FC<HeatmapProps> = ({ groupData }) => {
                   <td className="sticky left-0 z-10 bg-cyber-bg-card border border-cyber-border px-3 py-2 text-sm text-cyber-text-primary font-medium">
                     {team.name}
                   </td>
-                  {matrix[teamIdx]?.map((value, levelIdx) => (
-                    <td
-                      key={levelIdx}
-                      className={`border border-cyber-border p-1 ${getColor(value)} transition-all hover:opacity-80`}
-                      title={`Team: ${team.name}, Level: ${levels[levelIdx]?.title || levelIdx + 1}`}
-                    >
-                      <div className="h-6 w-full flex items-center justify-center">
-                        {value === 1 && (
-                          <div className="h-3 w-3 rounded-full bg-cyber-neon-green" />
-                        )}
-                      </div>
-                    </td>
-                  ))}
+                  {levels.map((level, levelIdx) => {
+                    const value = matrix[teamIdx]?.[levelIdx] || 0;
+                    return (
+                      <td
+                        key={level.id || levelIdx}
+                        className={`border border-cyber-border p-1 ${getColor(value)} transition-all hover:opacity-80 cursor-pointer`}
+                        title={`Team: ${team.name}, Level: ${level.title || level.number || levelIdx + 1} - ${value === 1 ? 'Solved' : 'Not Solved'}`}
+                      >
+                        <div className="h-6 w-full flex items-center justify-center">
+                          {value === 1 && (
+                            <div className="h-3 w-3 rounded-full bg-cyber-neon-green shadow-lg shadow-cyber-neon-green/50" />
+                          )}
+                        </div>
+                      </td>
+                    );
+                  })}
                 </tr>
               ))}
             </tbody>

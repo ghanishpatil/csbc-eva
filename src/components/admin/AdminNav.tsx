@@ -12,6 +12,7 @@ import {
   Settings,
   ChevronRight,
   Zap,
+  FileText,
 } from 'lucide-react';
 
 const AdminNav = () => {
@@ -26,6 +27,7 @@ const AdminNav = () => {
     { path: '/admin/users', icon: Shield, label: 'Users', color: 'green' },
     { path: '/admin/levels', icon: Target, label: 'Missions', color: 'orange' },
     { path: '/admin/submissions', icon: Activity, label: 'Submissions', color: 'cyan' },
+    { path: '/admin/manual-submissions', icon: FileText, label: 'Manual Submissions', color: 'indigo' },
     { path: '/admin/analytics', icon: BarChart3, label: 'Analytics', color: 'pink' },
     { path: '/admin/announcements', icon: Megaphone, label: 'Announcements', color: 'yellow' },
     { path: '/admin/leaderboard', icon: Award, label: 'Leaderboard', color: 'emerald' },
@@ -45,6 +47,7 @@ const AdminNav = () => {
       emerald: isActive ? 'bg-emerald-600 text-white' : 'text-emerald-400 hover:bg-emerald-900 hover:bg-emerald-opacity-20',
       lime: isActive ? 'bg-lime-600 text-white' : 'text-lime-400 hover:bg-lime-900 hover:bg-opacity-20',
       gray: isActive ? 'bg-gray-600 text-white' : 'text-gray-400 hover:bg-gray-900 hover:bg-opacity-20',
+      indigo: isActive ? 'bg-indigo-600 text-white' : 'text-indigo-400 hover:bg-indigo-900 hover:bg-opacity-20',
     };
     return colors[color as keyof typeof colors] || colors.gray;
   };

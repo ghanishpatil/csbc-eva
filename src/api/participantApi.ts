@@ -330,3 +330,61 @@ export const startMission = async (data: StartMissionRequest): Promise<StartMiss
   return response.data;
 };
 
+/**
+ * Manual Flag Submission APIs
+ */
+export interface ManualSubmission {
+  id: string;
+  teamId: string;
+  teamName: string;
+  levelId: string;
+  levelTitle: string;
+  flag: string;
+  submittedBy: string;
+  submittedByName: string;
+  submittedAt: number;
+  status: 'pending' | 'approved' | 'rejected';
+  reviewedBy?: string;
+  reviewedByName?: string;
+  reviewedAt?: number;
+  decision?: 'approved' | 'rejected';
+  rejectionReason?: string;
+  scoreAwarded?: number;
+}
+
+export interface SubmitManualFlagRequest {
+  teamId: string;
+  levelId: string;
+  flag: string;
+}
+
+export interface SubmitManualFlagResponse {
+  success: boolean;
+  message?: string;
+  data?: {
+    submissionId: string;
+    status: string;
+  };
+  error?: string;
+}
+
+export const submitManualFlag = async (data: SubmitManualFlagRequest): Promise<SubmitManualFlagResponse> => {
+  const response = await participantApi.post('/api/manual-submissions', data);
+  return response.data;
+};
+
+export interface GetTeamManualSubmissionsResponse {
+  success: boolean;
+  data?: {
+    submissions: ManualSubmission[];
+    count: number;
+  };
+  error?: string;
+}
+
+export const getTeamManualSubmissions = async (teamId: string): Promise<GetTeamManualSubmissionsResponse> => {
+  const response = await participantApi.get('/api/manual-submissions/team', {
+    params: { teamId },
+  });
+  return response.data;
+};

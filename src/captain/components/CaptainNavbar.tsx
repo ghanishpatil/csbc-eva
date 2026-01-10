@@ -1,11 +1,12 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Shield, Home, Users, Trophy, FileText, MessageSquare } from 'lucide-react';
+import { Shield, Home, Users, Trophy, FileText, MessageSquare, CheckCircle2 } from 'lucide-react';
 
 const tabs = [
   { to: '/captain/dashboard', label: 'Group Overview', icon: Home, color: 'text-cyber-neon-blue', activeBg: 'bg-cyber-neon-blue/10' },
   { to: '/captain/teams', label: 'Teams Performance', icon: Users, color: 'text-cyber-neon-green', activeBg: 'bg-cyber-neon-green/10' },
   { to: '/captain/leaderboard', label: 'Group Leaderboard', icon: Trophy, color: 'text-cyber-neon-yellow', activeBg: 'bg-cyber-neon-yellow/10' },
   { to: '/captain/logs', label: 'Submission Logs', icon: FileText, color: 'text-cyber-neon-purple', activeBg: 'bg-cyber-neon-purple/10' },
+  { to: '/captain/flag-reviews', label: 'Flag Reviews', icon: CheckCircle2, color: 'text-cyber-neon-cyan', activeBg: 'bg-cyber-neon-cyan/10' },
   { to: '/captain/announcements', label: 'Announcements', icon: MessageSquare, color: 'text-cyber-neon-red', activeBg: 'bg-cyber-neon-red/10' },
 ];
 

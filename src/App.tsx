@@ -22,11 +22,13 @@ import AdminAnalytics from '@/pages/admin/AdminAnalytics';
 import AdminAnnouncements from '@/pages/admin/AdminAnnouncements';
 import AdminSettings from '@/pages/admin/AdminSettings';
 import AdminEventControl from '@/pages/admin/AdminEventControl';
+import AdminManualSubmissions from '@/pages/admin/AdminManualSubmissions';
 import { Dashboard as CaptainDashboard } from '@/captain/pages/Dashboard';
 import { TeamsPerformance } from '@/captain/pages/TeamsPerformance';
 import { TeamDetailPage } from '@/captain/pages/TeamDetail';
 import { GroupLeaderboard } from '@/captain/pages/GroupLeaderboard';
 import { SubmissionLogs } from '@/captain/pages/SubmissionLogs';
+import { FlagReviews } from '@/captain/pages/FlagReviews';
 import { Dashboard as ParticipantDashboard } from '@/participant/pages/Dashboard';
 import { CheckIn } from '@/participant/pages/CheckIn';
 import { ActiveMission } from '@/participant/pages/ActiveMission';
@@ -282,6 +284,17 @@ function App() {
         />
         
         <Route
+          path="/admin/manual-submissions"
+          element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <AdminLayout>
+                <AdminManualSubmissions />
+              </AdminLayout>
+            </ProtectedRoute>
+          }
+        />
+        
+        <Route
           path="/captain/dashboard"
           element={
             <ProtectedRoute allowedRoles={['captain']}>
@@ -331,6 +344,15 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={['captain']}>
               <Announcements />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/captain/flag-reviews"
+          element={
+            <ProtectedRoute allowedRoles={['captain']}>
+              <FlagReviews />
             </ProtectedRoute>
           }
         />

@@ -59,9 +59,11 @@ export const SuspiciousActivityDetector: React.FC<SuspiciousActivityDetectorProp
       Object.entries(attemptsByLevel).forEach(([levelId, count]) => {
         if (count > 10) {
           const team = teams.find(t => t.id === teamId);
+          const levelLog = teamLogs.find(log => log.levelId === levelId);
+          const levelName = levelLog?.levelTitle || `Level ${levelId.substring(0, 8)}...`;
           suspicious.push({
             type: 'excessive_attempts',
-            description: `${count} wrong attempts on level ${levelId}`,
+            description: `${count} wrong attempts on ${levelName}`,
             severity: 'medium',
             teamId,
             teamName: team?.name || 'Unknown',

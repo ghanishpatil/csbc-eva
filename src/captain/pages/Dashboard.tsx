@@ -49,11 +49,26 @@ export const Dashboard: React.FC = () => {
 
     let groupName = '';
     const unsubscribers: (() => void)[] = [];
+    const stateRef = { teams: [] as any[], levels: [] as any[], submissions: [] as any[] };
+
+    // Helper function to recalculate solveMatrix
+    const recalculateSolveMatrix = (teams: any[], levels: any[], submissions: any[]) => {
+      return teams.map((team) => {
+        const teamSubmissions = submissions.filter(
+          (s: any) => s.teamId === team.id && s.status === 'correct'
+        );
+        return levels.map((level: any) => {
+          const solved = teamSubmissions.some((s: any) => s.levelId === level.id);
+          return solved ? 1 : 0;
+        });
+      });
+    };
 
     // Listen to group data
     const groupUnsub = onSnapshot(doc(db, 'groups', groupId), (doc) => {
       if (doc.exists()) {
         groupName = doc.data().name || 'Unknown Group';
+        setGroupData((prev) => prev ? { ...prev, groupName } : prev);
       }
     });
     unsubscribers.push(groupUnsub);
@@ -66,27 +81,34 @@ export const Dashboard: React.FC = () => {
           id: doc.id,
           ...doc.data(),
         }));
+        stateRef.teams = teams;
 
         // Calculate stats
         const totalScore = teams.reduce((acc, t: any) => acc + (t.score || 0), 0);
         const solves = teams.reduce((acc, t: any) => acc + (t.levelsCompleted || 0), 0);
         const hintsUsed = teams.reduce((acc, t: any) => acc + (t.hintsUsed || 0), 0);
 
-        // Update group data
-        setGroupData((prev) => ({
-          ...prev,
-          groupId,
-          groupName: groupName || prev?.groupName || 'Group',
-          teams: teams as any[],
-          levels: prev?.levels || [],
-          stats: {
-            totalTeams: teams.length,
-            totalScore,
-            solves,
-            hintsUsed,
-            totalLevels: prev?.stats?.totalLevels || 0,
-          },
-        }));
+        setGroupData((prev) => {
+          const levels = prev?.levels || stateRef.levels;
+          const submissions = stateRef.submissions;
+          const solveMatrix = recalculateSolveMatrix(teams, levels, submissions);
+          
+          return {
+            ...prev,
+            groupId,
+            groupName: groupName || prev?.groupName || 'Group',
+            teams: teams as any[],
+            levels,
+            solveMatrix,
+            stats: {
+              totalTeams: teams.length,
+              totalScore,
+              solves,
+              hintsUsed,
+              totalLevels: levels.length,
+            },
+          };
+        });
         setLoading(false);
       }
     );
@@ -100,12 +122,18 @@ export const Dashboard: React.FC = () => {
           id: doc.id,
           ...doc.data(),
         }));
+        stateRef.levels = levels;
 
         setGroupData((prev) => {
           if (!prev) return prev;
+          const teams = prev.teams || stateRef.teams;
+          const submissions = stateRef.submissions;
+          const solveMatrix = recalculateSolveMatrix(teams, levels, submissions);
+          
           return {
             ...prev,
             levels: levels as any[],
+            solveMatrix,
             stats: {
               ...prev.stats,
               totalLevels: levels.length,
@@ -116,18 +144,45 @@ export const Dashboard: React.FC = () => {
     );
     unsubscribers.push(levelsUnsub);
 
-    // Listen to submissions for teams in this group
-    const submissionsUnsub = onSnapshot(
+    // Listen to all submissions for real-time heatmap updates
+    const allSubmissionsUnsub = onSnapshot(
       query(collection(db, 'submissions'), orderBy('submittedAt', 'desc')),
       (snapshot) => {
-        const submissions = snapshot.docs.map((doc) => ({
+        const allSubmissions = snapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
         }));
-        setLogs(submissions.slice(0, 200));
+        
+        // Filter submissions for teams in this group and correct status only
+        const groupSubmissions = allSubmissions.filter(
+          (s: any) => s.status === 'correct' && stateRef.teams.length > 0 && stateRef.teams.some(t => t.id === s.teamId)
+        );
+        
+        stateRef.submissions = groupSubmissions;
+        setLogs(allSubmissions.slice(0, 200));
+
+        // Recalculate solveMatrix in real-time when submissions change
+        // Only recalculate if we have both teams and levels
+        setGroupData((prev) => {
+          if (!prev) return prev;
+          const teams = prev.teams || stateRef.teams;
+          const levels = prev.levels || stateRef.levels;
+          
+          // Only calculate if we have both teams and levels
+          if (teams.length === 0 || levels.length === 0) {
+            return prev;
+          }
+          
+          const solveMatrix = recalculateSolveMatrix(teams, levels, groupSubmissions);
+          
+          return {
+            ...prev,
+            solveMatrix,
+          };
+        });
       }
     );
-    unsubscribers.push(submissionsUnsub);
+    unsubscribers.push(allSubmissionsUnsub);
 
     return () => {
       unsubscribers.forEach((unsub) => unsub());

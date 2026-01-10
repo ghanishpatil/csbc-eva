@@ -73,6 +73,48 @@ service cloud.firestore {
       // All writes must go through backend API
       allow write: if false;
     }
+    
+    // Manual submissions collection - READ ONLY for clients
+    match /manual_submissions/{submissionId} {
+      allow read: if isAuthenticated();
+      // All writes must go through backend API
+      allow write: if false;
+    }
+    
+    // Check-ins collection - READ ONLY for clients
+    match /check_ins/{checkInId} {
+      allow read: if isAuthenticated();
+      // All writes must go through backend API
+      allow write: if false;
+    }
+    
+    // Hint usage collection - READ ONLY for clients
+    match /hint_usage/{usageId} {
+      allow read: if isAuthenticated();
+      // All writes must go through backend API
+      allow write: if false;
+    }
+    
+    // Event config collection - READ ONLY for clients
+    match /event_config/{configId} {
+      allow read: if isAuthenticated();
+      // All writes must go through backend API
+      allow write: if false;
+    }
+    
+    // Level index collection - INTERNAL USE ONLY (backend only)
+    // These are used for atomic uniqueness constraints
+    match /level_index/{indexId} {
+      allow read: if false;
+      allow write: if false;
+    }
+    
+    // QR index collection - INTERNAL USE ONLY (backend only)
+    // These are used for atomic uniqueness constraints
+    match /qr_index/{indexId} {
+      allow read: if false;
+      allow write: if false;
+    }
   }
 }
 

@@ -184,6 +184,23 @@ const AdminLevels = () => {
       return;
     }
 
+    // CRITICAL: Check for duplicate level number within the same group
+    const existingLevel = levels.find(
+      level => level.groupId === newLevel.groupId && level.number === newLevel.number
+    );
+    if (existingLevel) {
+      const groupName = groups.find(g => g.id === newLevel.groupId)?.name || 'Unknown Group';
+      toast.error(`Level ${newLevel.number} already exists in ${groupName}. Each group can only have one level per number.`);
+      return;
+    }
+
+    // CRITICAL: Check for duplicate QR Code ID (must be unique across all levels)
+    const duplicateQR = levels.find(level => level.qrCodeId === newLevel.qrCodeId);
+    if (duplicateQR) {
+      toast.error(`QR Code ID "${newLevel.qrCodeId}" is already in use by another level. Each QR code must be unique.`);
+      return;
+    }
+
     if (!newLevel.qrCodeId?.trim()) {
       toast.error('QR Code ID is required for physical check-in');
       return;
@@ -264,6 +281,31 @@ const AdminLevels = () => {
 
   const handleUpdateLevel = async () => {
     if (!selectedLevel) return;
+
+    // CRITICAL: Check for duplicate level number within the same group (excluding current level)
+    if (selectedLevel.groupId && selectedLevel.number) {
+      const existingLevel = levels.find(
+        level => level.id !== selectedLevel.id && 
+                 level.groupId === selectedLevel.groupId && 
+                 level.number === selectedLevel.number
+      );
+      if (existingLevel) {
+        const groupName = groups.find(g => g.id === selectedLevel.groupId)?.name || 'Unknown Group';
+        toast.error(`Level ${selectedLevel.number} already exists in ${groupName}. Each group can only have one level per number.`);
+        return;
+      }
+    }
+
+    // CRITICAL: Check for duplicate QR Code ID (excluding current level)
+    if (selectedLevel.qrCodeId) {
+      const duplicateQR = levels.find(
+        level => level.id !== selectedLevel.id && level.qrCodeId === selectedLevel.qrCodeId
+      );
+      if (duplicateQR) {
+        toast.error(`QR Code ID "${selectedLevel.qrCodeId}" is already in use by another level. Each QR code must be unique.`);
+        return;
+      }
+    }
 
     try {
       // Update level via backend API

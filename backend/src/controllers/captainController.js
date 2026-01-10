@@ -239,6 +239,36 @@ export const getSubmissionLogs = async (req, res) => {
       allSubmissions.push(...snapshot.docs);
     }
     
+    // Get all unique level IDs from submissions
+    const levelIds = [...new Set(allSubmissions.map(doc => doc.data().levelId).filter(Boolean))];
+    
+    // Fetch level data to get level names (fetch each level document)
+    const levelMap = {};
+    if (levelIds.length > 0) {
+      // Use Promise.all to fetch all levels in parallel for better performance
+      const levelPromises = levelIds.map(async (levelId) => {
+        try {
+          const levelDoc = await db.collection('levels').doc(levelId).get();
+          if (levelDoc.exists) {
+            const levelData = levelDoc.data();
+            return {
+              id: levelId,
+              title: levelData.title || `Level ${levelData.number || 'N/A'}`,
+            };
+          }
+          return { id: levelId, title: `Level ${levelId.substring(0, 8)}...` };
+        } catch (error) {
+          console.error(`[CaptainController] Error fetching level ${levelId}:`, error);
+          return { id: levelId, title: `Level ${levelId.substring(0, 8)}...` };
+        }
+      });
+      
+      const levelResults = await Promise.all(levelPromises);
+      levelResults.forEach(({ id, title }) => {
+        levelMap[id] = title;
+      });
+    }
+    
     // Sort and limit in memory (since we can't use orderBy with batched queries)
     allSubmissions.sort((a, b) => (b.data().submittedAt || 0) - (a.data().submittedAt || 0));
     const submissionsSnapshot = {
@@ -252,6 +282,7 @@ export const getSubmissionLogs = async (req, res) => {
         teamId: data.teamId,
         teamName: teamsSnapshot.docs.find(t => t.id === data.teamId)?.data()?.name || 'Unknown',
         levelId: data.levelId,
+        levelTitle: levelMap[data.levelId] || `Level ${data.levelId?.substring(0, 8) || 'Unknown'}`,
         status: data.status,
         scoreAwarded: data.scoreAwarded || 0,
         hintsUsed: data.hintsUsed || 0,

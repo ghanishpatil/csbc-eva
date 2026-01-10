@@ -30,6 +30,7 @@ import {
 import { validateRequest, verifyAdmin } from '../middleware/validateRequest.js';
 import { adminLimiter } from '../middleware/rateLimiter.js';
 import { createBackupController, getBackupStatsController } from '../controllers/backupController.js';
+import { getAllManualSubmissions } from '../controllers/manualSubmissionsController.js';
 
 const router = express.Router();
 
@@ -262,6 +263,12 @@ router.post('/block-user', validateRequest(blockUserSchema), blockUser);
  * Delete a user
  */
 router.delete('/user/:userId', deleteUser);
+
+/**
+ * GET /api/admin/manual-submissions
+ * Get all manual submissions (monitoring)
+ */
+router.get('/manual-submissions', getAllManualSubmissions);
 
 export default router;
 

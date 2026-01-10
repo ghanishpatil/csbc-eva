@@ -275,5 +275,33 @@ export const checkBackendHealth = async () => {
   }
 };
 
+// ============================================================================
+// MANUAL SUBMISSIONS (MONITORING)
+// ============================================================================
+
+export interface ManualSubmission {
+  id: string;
+  teamId: string;
+  teamName: string;
+  levelId: string;
+  levelTitle: string;
+  flag: string;
+  submittedBy: string;
+  submittedByName: string;
+  submittedAt: number;
+  status: 'pending' | 'approved' | 'rejected';
+  reviewedBy?: string;
+  reviewedByName?: string;
+  reviewedAt?: number;
+  decision?: 'approved' | 'rejected';
+  rejectionReason?: string;
+  scoreAwarded?: number;
+}
+
+export const getAllManualSubmissions = async (): Promise<{ submissions: ManualSubmission[]; count: number }> => {
+  const response = await adminApi.get('/api/admin/manual-submissions');
+  return response.data.data;
+};
+
 export default adminApi;
 
