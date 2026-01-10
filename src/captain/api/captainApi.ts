@@ -57,6 +57,7 @@ export interface Level {
   basePoints: number;
   difficulty: string;
   isActive: boolean;
+  number?: number; // Level number for sequential ordering
 }
 
 export interface TeamDetail {

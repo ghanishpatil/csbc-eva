@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { getAllManualSubmissions, type ManualSubmission } from '@/api/adminApi';
 import { CyberCard } from '@/components/ui/CyberCard';
 import { PageHeader } from '@/components/ui/PageHeader';
-import { FileText, CheckCircle2, XCircle, Clock, User, Target, Search } from 'lucide-react';
+import { FileText, CheckCircle2, XCircle, Clock, Search } from 'lucide-react';
 
 const AdminManualSubmissions = () => {
   const [submissions, setSubmissions] = useState<ManualSubmission[]>([]);

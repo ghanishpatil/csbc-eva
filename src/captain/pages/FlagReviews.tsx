@@ -11,7 +11,6 @@ import { FileText, CheckCircle2, XCircle, Clock, User, Target } from 'lucide-rea
 import toast from 'react-hot-toast';
 
 export const FlagReviews = () => {
-  const { user } = useAuth();
   const [submissions, setSubmissions] = useState<ManualSubmission[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);

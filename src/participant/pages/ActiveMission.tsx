@@ -28,7 +28,6 @@ export const ActiveMission = () => {
   const [manualFlag, setManualFlag] = useState('');
   const [submittingManual, setSubmittingManual] = useState(false);
   const [manualSubmissions, setManualSubmissions] = useState<ManualSubmission[]>([]);
-  const [showManualSection, setShowManualSection] = useState(false);
 
   // Subscribe to event config for real-time event status
   useEffect(() => {
